@@ -1,27 +1,43 @@
 import type { Metadata } from "next";
-import { Search } from "lucide-react";
-import { EmptyState, PageHeader } from "@/components/layout/page-header";
 import { requireUser } from "@/lib/session";
+import { parseSearch } from "@/lib/rate-search";
+import { searchOptions, searchRates } from "@/lib/rate-search-service";
+import { RateSearchWorkspace } from "@/components/rates/search-workspace";
 
 export const metadata: Metadata = { title: "Rate search" };
 
-export default async function RateSearchPage() {
+export default async function RateSearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await requireUser();
+  const values = await searchParams;
+  const params = new URLSearchParams();
+  Object.entries(values).forEach(([key, value]) => {
+    if (Array.isArray(value)) value.forEach((v) => params.append(key, v));
+    else if (value) params.set(key, value);
+  });
+  let filters;
+  let error: string | undefined;
+  try {
+    filters = parseSearch(params);
+  } catch {
+    filters = parseSearch(new URLSearchParams());
+    error = "Some URL filters were invalid and have been reset.";
+  }
+  const [options, result] = await Promise.all([
+    searchOptions(),
+    searchRates(filters),
+  ]);
   return (
-    <>
-      <PageHeader
-        title="Rate search"
-        description="Find rates from published BOQs by item, project, location, building type, stage and date."
-      />
-      <EmptyState
-        icon={Search}
-        title="No rates yet"
-        description={
-          user.role === "ADMIN"
-            ? "Rates appear here once BOQs are uploaded, reviewed and published. BOQ upload is being built next."
-            : "Rates appear here once an admin publishes BOQs."
-        }
-      />
-    </>
+    <RateSearchWorkspace
+      userId={user.id}
+      admin={user.role === "ADMIN"}
+      initialFilters={filters}
+      initialResult={result}
+      options={options}
+      initialError={error}
+    />
   );
 }

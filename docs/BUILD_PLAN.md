@@ -2,7 +2,7 @@
 
 **Owner:** Quantity Surveying Global Solutions (QSGS)
 **Version:** 1.0 — 9 October 2026
-**Status:** Phases 0–3 implemented. Next: Phase 4 — rate search. Phase 3 verified locally; production rollout pending.
+**Status:** Phases 0–4 implemented locally. Next: Phase 5 — AI helper. Production rollout pending.
 
 ---
 
@@ -424,7 +424,11 @@ Each phase ends with a working, demonstrable result.
 - Publish transaction; project and document pages.
 - **Done when:** an admin can fix a flagged item, publish, and see the document on the project page.
 
-### Phase 4 — Rate search
+### Phase 4 — Rate search ✅
+- Built: authenticated published-only full-text and typo-tolerant search over the full description chain and project name/number; dimensions are matched exactly; multi-project/stage filters, country/city, building type, rate type, unit, BOQ/project dates and heading filters; SAR/AED/QAR display conversion; SQL median/min/max across all matching rates with one-unit safeguards; relevance/newest ranking and pagination.
+- Item panel includes project/source links, all item rates, exact-description/unit history chart and sibling items. Basket persists per user in the browser tab across searches and exports a formatted Excel workbook with complete project metadata, source and converted values. Export rechecks publication and preserves text and large numeric precision.
+- Trade currently follows BOQ section headings; AI trade tagging is Phase 5. Bidder ID filters appear when published bidder rates exist; tender extraction and bidder mapping remain Phase 6. Timeline shows up to 500 exact-description matches and labels truncation.
+- Verified locally: permission/validation tests, Postgres matching/conversion/statistics tests, 5,000-rate pagination/performance test under 500 ms, valid downloaded Excel, desktop and mobile browser interactions. Real priced Q-Walk remains in review and is not searchable until an admin publishes it.
 - Full-text + typo-tolerant search, filters, currency switch, statistics.
 - Item detail panel, rate-over-time chart, basket and Excel export.
 - **Done when:** searching "60mm concrete paver" returns the correct items with correct statistics, under 500 ms.

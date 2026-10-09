@@ -28,6 +28,7 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.54.0",
     "next": "^16.4.0",
     "next-auth": "^4.24.15",
@@ -62,5 +63,8 @@
     "@embedded-postgres/windows-x64@18.4.0-beta.17": true,
     "unrs-resolver@1.12.2": true,
     "esbuild@0.28.2": true
+  },
+  "overrides": {
+    "uuid": "^11.1.0"
   }
 }

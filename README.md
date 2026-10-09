@@ -86,6 +86,14 @@ $env:TEST_DATABASE_URL='postgresql://postgres:postgres@localhost:54329/costdb'
 npm --prefix web test
 ```
 
+## Rate search
+
+The home page searches only published BOQs. Search by description, project name or project number; filters cover projects, stages, location, building type, rate type, unit and both BOQ and project dates. Trade filters currently use the BOQ headings. Choose one unit to see comparable statistics. SAR, AED and QAR conversion uses the fixed USD pegs in the build plan without changing source values.
+
+Open an item for its full description, source, sibling items and exact-description rate history. Use the + buttons to collect up to 500 rates across searches, then open Basket to export Excel. The basket is saved per user in the current browser tab. Original BOQs still in review must be checked and published before they appear here.
+
+The search migration requires PostgreSQL's `pg_trgm` extension; deployment applies it through `prisma migrate deploy` with the other migrations.
+
 ## Confidential data
 
 BOQ files and extraction outputs (`*.pdf`, `*.xlsx`, `*.csv`) and `.env` files are git-ignored. Never commit client BOQs or API keys.

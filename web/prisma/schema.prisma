@@ -342,6 +342,7 @@ model BoqItem {
   description       String
   /// Heading — main description — item text; rebuilt whenever a part changes.
   fullDescription   String
+  searchVector      Unsupported("tsvector")? @default(dbgenerated())
   unitRaw           String?
   unit              String?
   qty               Decimal? @db.Decimal(18, 4)
