@@ -21,7 +21,7 @@ def extract(path: str, file_type: str) -> ExtractResult:
         raise ExtractError("UNSUPPORTED", "Only PDF and Excel (.xlsx) BOQs are supported.")
 
     bills = build(read.events)
-    check_items(bills)
+    check_items(bills, check_page_refs=file_type == "pdf")
     issues: list[Issue] = [*read.issues, *check_page_totals(bills, read.page_totals)]
 
     items = [i for b in bills for s in b.sections for m in s.main_descriptions for i in m.items]

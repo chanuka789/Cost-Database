@@ -19,7 +19,7 @@ def _flag(item: Item, code: str, severity: str, message: str) -> None:
         item.flags.append(Flag(code=code, severity=severity, message=message))  # type: ignore[arg-type]
 
 
-def check_items(bills: list[Bill]) -> None:
+def check_items(bills: list[Bill], *, check_page_refs: bool = True) -> None:
     for bill in bills:
         seen_on_page: dict[tuple[int, str], int] = {}
         previous: Item | None = None
@@ -27,6 +27,11 @@ def check_items(bills: list[Bill]) -> None:
             for md in section.main_descriptions:
                 for item in md.items:
                     _check_item(item)
+                    # Excel records a sheet number, not a printed page. Refs
+                    # legitimately restart throughout a bill sheet, so PDF's
+                    # per-page duplicate/sequence checks don't apply there.
+                    if not check_page_refs:
+                        continue
                     key = (item.page, item.ref.upper())
                     seen_on_page[key] = seen_on_page.get(key, 0) + 1
                     if seen_on_page[key] > 1:

@@ -2,7 +2,7 @@
 
 **Owner:** Quantity Surveying Global Solutions (QSGS)
 **Version:** 1.0 — 9 October 2026
-**Status:** Phases 0, 1 and 2 complete (9 Oct 2026). Next: Phase 3 — review and publish.
+**Status:** Phases 0–3 implemented. Next: Phase 4 — rate search. Phase 3 verified locally; production rollout pending.
 
 ---
 
@@ -412,10 +412,14 @@ Each phase ends with a working, demonstrable result.
 
 - Extractor service from the prototype: PDF parser, hierarchy builder, validation, golden test with Q-Walk.
 - Excel parser.
+- Local priced Q-Walk workbook verified: 184 items, 121 numeric rates; every extracted quantity, rate and amount matched the original. Excel reference checks respect sheet sections rather than PDF page conventions. Imported locally for admin review.
 - Upload screen, file storage, duplicate check, job progress.
 - **Done when:** uploading Q-Walk produces all 184 items with correct hierarchy and the golden test passes.
 
-### Phase 3 — Review and publish
+### Phase 3 — Review and publish ✅
+- Built: PDF side-by-side with matching source text highlights; page/sheet navigation; error, warning, unchecked and AI-change filters; editable bills, headings, shared descriptions and item fields; bulk check/unit/move, group split and merge; reasoned acceptance of source checks; checked-item progress; atomic publish with admin attribution and audit history; project and published-document pages.
+- Editing clears affected item checks. Server-side errors and unchecked items block publishing; stale/concurrent edits are rejected. Users see only published documents and their source files. Tender mapping stays in Phase 6.
+- Verified: web tests, PostgreSQL transaction tests, production build, desktop light/dark and 390px browser checks; fixed a flagged synthetic item, bulk checked, published and opened its project/document. Real Q-Walk PDF preview checked without publishing the real BOQ.
 - Review screen with PDF side-by-side, inline edit, flags, bulk edit.
 - Publish transaction; project and document pages.
 - **Done when:** an admin can fix a flagged item, publish, and see the document on the project page.
@@ -466,7 +470,7 @@ Each phase ends with a working, demonstrable result.
 | # | Item | Needed by |
 |---|---|---|
 | 1 | Sample tender return (PDF or Excel) | Phase 6 |
-| 2 | Sample priced PTE BOQ and one BOQ from a different consultant | Phase 2 |
+| 2 | BOQ from a different consultant (priced Q-Walk sample supplied and verified locally) | Phase 2 |
 | 3 | Full list of cities, building types and project stages to seed | Phase 1 |
 | 4 | Email provider for invites (Resend suggested) and sender address | Phase 1 |
 | 5 | API keys for DeepSeek / Meta / OpenRouter — entered by an admin in AI settings, never shared in chat | Phase 5 |

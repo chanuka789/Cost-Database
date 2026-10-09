@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ExternalLink, Loader2, RotateCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,7 @@ export function UploadActions({ id, status }: { id: string; status: string }) {
 
   return (
     <div className="flex shrink-0 flex-wrap gap-2">
+      {status === "REVIEW" ? <Button asChild><Link href={`/uploads/${id}/review`}>Review and publish</Link></Button> : null}
       <Button variant="outline" asChild>
         <a href={`/api/uploads/${id}/file`} target="_blank" rel="noopener">
           <ExternalLink aria-hidden />

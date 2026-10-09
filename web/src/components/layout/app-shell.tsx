@@ -163,7 +163,7 @@ export function AppShell({ user, theme, children }: { user: ShellUser; theme: "l
       ) : null}
 
       <div className={cn("pt-14 transition-[padding] duration-200 ease-out", collapsed ? "lg:pl-16" : "lg:pl-60")}>
-        <main id="main" className="mx-auto w-full max-w-[calc(1280px_+_2*clamp(16px,2.5vw,24px))] px-[clamp(16px,2.5vw,24px)] py-5 max-sm:px-3 max-sm:py-4 lg:py-6">
+        <main id="main" className={cn("mx-auto w-full px-[clamp(16px,2.5vw,24px)] py-5 max-sm:px-3 max-sm:py-4 lg:py-6", pathname.endsWith("/review") ? "max-w-none" : "max-w-[calc(1280px_+_2*clamp(16px,2.5vw,24px))]")}>
           {children}
         </main>
       </div>

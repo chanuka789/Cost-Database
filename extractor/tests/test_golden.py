@@ -18,7 +18,7 @@ import pytest
 from app.extract import extract
 
 PRIVATE = Path(__file__).parent / "fixtures" / "private"
-CASES = sorted(PRIVATE.glob("*.pdf")) if PRIVATE.exists() else []
+CASES = sorted([*PRIVATE.glob("*.pdf"), *PRIVATE.glob("*.xlsx")]) if PRIVATE.exists() else []
 
 
 def _normalise(data: dict) -> dict:
@@ -33,7 +33,7 @@ def test_matches_reference(pdf: Path):
     expected_file = pdf.with_suffix(".expected.json")
     assert expected_file.exists(), f"missing {expected_file.name}"
     expected = _normalise(json.loads(expected_file.read_text(encoding="utf-8")))
-    actual = _normalise(json.loads(extract(str(pdf), "pdf").model_dump_json()))
+    actual = _normalise(json.loads(extract(str(pdf), pdf.suffix.lstrip(".")).model_dump_json()))
     assert actual["stats"] == expected["stats"]
     for got, want in zip(actual["bills"], expected["bills"], strict=True):
         assert got == want, f"bill {want['bill_no']} differs"
@@ -42,5 +42,5 @@ def test_matches_reference(pdf: Path):
 
 if __name__ == "__main__" and len(sys.argv) == 3 and sys.argv[1] == "--update":
     pdf = PRIVATE / sys.argv[2]
-    pdf.with_suffix(".expected.json").write_text(extract(str(pdf), "pdf").model_dump_json(indent=1), encoding="utf-8")
+    pdf.with_suffix(".expected.json").write_text(extract(str(pdf), pdf.suffix.lstrip(".")).model_dump_json(indent=1), encoding="utf-8")
     print(f"updated {pdf.with_suffix('.expected.json').name}")

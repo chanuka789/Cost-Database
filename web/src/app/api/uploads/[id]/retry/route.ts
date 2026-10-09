@@ -14,7 +14,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Only from FAILED or REVIEW, checked in the update itself so two clicks can't start two runs.
     const claimed = await tx.boqDocument.updateMany({
       where: { id, status: { in: ["FAILED", "REVIEW"] } },
-      data: { status: "PROCESSING", failureCode: null, failureMessage: null },
+      data: { status: "PROCESSING", failureCode: null, failureMessage: null, reviewVersion: { increment: 1 }, acceptedIssues: [] },
     });
     if (claimed.count !== 1) return null;
     await audit({ userId: admin.id, action: "document.retried", entity: "document", entityId: id }, tx);

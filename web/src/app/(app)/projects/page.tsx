@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { FolderKanban } from "lucide-react";
 import { EmptyState, PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
@@ -32,7 +33,7 @@ export default async function ProjectsPage() {
 
   return (
     <>
-      <PageHeader title="Projects" description="Every project with its location, building type and BOQs by stage. Project pages come with the review step." />
+      <PageHeader title="Projects" description="Every project with its location, building type and BOQs by stage." />
       {projects.length === 0 ? (
         <EmptyState
           icon={FolderKanban}
@@ -57,7 +58,7 @@ export default async function ProjectsPage() {
                 return (
                   <tr key={p.id}>
                     <td>
-                      <span className="block font-[550]">{p.name}</span>
+                      <Link href={`/projects/${p.id}`} className="block font-[550] text-qs-brand-text hover:underline">{p.name}</Link>
                       <span className="text-[11.5px] text-qs-text-faint">{[p.projectNo, p.client].filter(Boolean).join(" · ") || "—"}</span>
                     </td>
                     <td>

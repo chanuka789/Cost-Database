@@ -139,8 +139,7 @@ export default async function UploadPage({ params }: { params: Promise<{ id: str
           <div className="mb-4 flex items-start gap-2.5 rounded-lg bg-qs-info-bg px-4 py-3 text-[13px] text-qs-info">
             <Info className="mt-px size-4 shrink-0" aria-hidden />
             <p>
-              This is what was extracted. Checking and correcting items, and publishing them to rate search, is the next step being built
-              (review screen).
+              {doc.status === "REVIEW" ? <>Check the source, correct flagged items and confirm each item before publishing. <Link href={`/uploads/${id}/review`} className="font-semibold underline">Open review workspace →</Link></> : <>This BOQ is published. <Link href={`/documents/${id}`} className="font-semibold underline">View document →</Link></>}
             </p>
           </div>
 

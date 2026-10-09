@@ -6,7 +6,7 @@ import { UploadForm, type UploadFormData } from "./upload-form";
 
 export const metadata: Metadata = { title: "Upload BOQ" };
 
-export default async function NewUploadPage() {
+export default async function NewUploadPage({ searchParams }: { searchParams: Promise<{ projectId?: string }> }) {
   await requireAdminPage();
   const [projects, countries, buildingTypes, stages] = await Promise.all([
     prisma.project.findMany({
@@ -47,6 +47,7 @@ export default async function NewUploadPage() {
     buildingTypes,
     stages,
   };
+  const { projectId } = await searchParams;
 
   return (
     <>
@@ -54,7 +55,7 @@ export default async function NewUploadPage() {
         title="Upload BOQ"
         description="Choose the file first — we read its cover and fill in what we can. Then check the details and start the extraction."
       />
-      <UploadForm data={data} />
+      <UploadForm data={data} initialProjectId={projects.some(p => p.id === projectId) ? projectId : undefined} />
     </>
   );
 }

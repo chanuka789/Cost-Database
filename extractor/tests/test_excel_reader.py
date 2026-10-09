@@ -75,3 +75,18 @@ def test_excel_without_items_is_rejected(tmp_path: Path):
     with pytest.raises(ExtractError) as err:
         extract(str(path), "xlsx")
     assert err.value.code == "NO_ITEMS"
+
+
+def test_restarted_refs_on_one_sheet_are_not_pdf_page_duplicates(tmp_path: Path):
+    path = tmp_path / "restarted.xlsx"
+    make_boq(path)
+    from openpyxl import load_workbook
+
+    wb = load_workbook(path)
+    ws = wb["Concrete"]
+    ws.append([None, "Second printed page", None, None, None, None])
+    ws.append(["A", "Extra concrete", 10, "m3", 5, 40])
+    wb.save(path)
+    items = [i for b in extract(str(path), "xlsx").bills for s in b.sections for m in s.main_descriptions for i in m.items]
+    assert not any(f.code in {"DUPLICATE_REF", "REF_GAP", "REF_ORDER"} for i in items for f in i.flags)
+    assert any(f.code == "AMOUNT_MISMATCH" for f in items[-1].flags)

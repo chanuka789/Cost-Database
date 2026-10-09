@@ -244,6 +244,8 @@ model BoqDocument {
   itemCount      Int            @default(0)
   errorCount     Int            @default(0)
   warningCount   Int            @default(0)
+  reviewVersion  Int            @default(0)
+  acceptedIssues Json           @default("[]")
   /// Document-level problems from the extractor (page totals, stray numbers).
   issues         Json?
   /// What the extractor read on the cover (project, date, stage).
@@ -349,6 +351,9 @@ model BoqItem {
   /// [{ code, severity, message }] from the automatic checks.
   flags             Json     @default("[]")
   aiTouched         Boolean  @default(false)
+  checkedAt         DateTime?
+  checkedById       String?
+  acceptedFlags     Json     @default("[]")
   createdAt         DateTime @default(now())
 
   document        BoqDocument     @relation(fields: [documentId], references: [id], onDelete: Cascade)

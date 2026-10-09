@@ -75,6 +75,17 @@ npm --prefix web run lint
 npm --prefix web run typecheck
 ```
 
+## Review and publish
+
+Admins can open a completed upload's review screen, edit items and their hierarchy, resolve errors or accept source issues with a reason, and mark each item checked. PDF uploads include a source preview; Excel uploads provide the original workbook download and sheet navigation. Publishing requires all items checked and no unresolved errors. Published documents appear on their project and are read-only.
+
+PostgreSQL transaction tests run when `TEST_DATABASE_URL` points to a local test database; they create and remove isolated fixtures. For the bundled local database in PowerShell:
+
+```powershell
+$env:TEST_DATABASE_URL='postgresql://postgres:postgres@localhost:54329/costdb'
+npm --prefix web test
+```
+
 ## Confidential data
 
 BOQ files and extraction outputs (`*.pdf`, `*.xlsx`, `*.csv`) and `.env` files are git-ignored. Never commit client BOQs or API keys.

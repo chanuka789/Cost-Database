@@ -43,6 +43,8 @@ export async function runExtraction(documentId: string, jobId: string, userId: s
           where: { id: documentId },
           data: {
             status: "REVIEW",
+            reviewVersion: { increment: 1 },
+            acceptedIssues: [],
             pageCount: result.stats.pages,
             itemCount: plan.counts.items,
             errorCount: plan.counts.errors,

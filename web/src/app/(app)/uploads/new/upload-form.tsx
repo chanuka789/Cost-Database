@@ -78,7 +78,7 @@ function Field({ label, htmlFor, hint, error, children, className }: { label: Re
   );
 }
 
-export function UploadForm({ data }: { data: UploadFormData }) {
+export function UploadForm({ data, initialProjectId }: { data: UploadFormData; initialProjectId?: string }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -89,7 +89,7 @@ export function UploadForm({ data }: { data: UploadFormData }) {
   const [fromCover, setFromCover] = useState<Set<string>>(new Set());
 
   const [projectMode, setProjectMode] = useState<"existing" | "new">(data.projects.length ? "existing" : "new");
-  const [projectId, setProjectId] = useState("");
+  const [projectId, setProjectId] = useState(initialProjectId ?? "");
   const [query, setQuery] = useState("");
   const [project, setProject] = useState({
     name: "",
