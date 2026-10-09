@@ -29,3 +29,8 @@ export function formatDate(d: Date | string | null | undefined): string {
 export function formatDateTime(d: Date | string | null | undefined): string {
   return d ? dateTimeFmt.format(new Date(d)) : "—";
 }
+
+/** "1 item", "3 items". */
+export function plural(n: number, word: string): string {
+  return `${n.toLocaleString("en-US")} ${word}${n === 1 ? "" : "s"}`;
+}

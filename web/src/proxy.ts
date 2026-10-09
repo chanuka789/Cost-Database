@@ -26,6 +26,8 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Skip Next internals, the auth endpoints and static files.
-  matcher: ["/((?!api/auth|_next/static|_next/image|brand/|icon.png|favicon.ico).*)"],
+  // Skip Next internals, the auth endpoints and static files. The upload API is
+  // skipped too: the proxy buffers request bodies and cuts them at 10 MB, which
+  // would corrupt large BOQs. Those routes check the admin session themselves.
+  matcher: ["/((?!api/auth|api/uploads|_next/static|_next/image|brand/|icon.png|favicon.ico).*)"],
 };

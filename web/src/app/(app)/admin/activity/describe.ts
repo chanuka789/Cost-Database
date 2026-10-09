@@ -47,6 +47,22 @@ export function describeAction(e: Entry, targetName?: string): string {
       return `Renamed ${who}`;
     case "user.renamed_self":
       return "Changed own name";
+    case "project.created":
+      return `Created project ${name ?? ""}`.trim();
+    case "document.uploaded":
+      return `Uploaded BOQ ${detail(e.details, "title") ?? ""}`.trim();
+    case "document.extracted": {
+      const items = detail(e.details, "items");
+      const errors = Number(detail(e.details, "errors") ?? 0);
+      const warnings = Number(detail(e.details, "warnings") ?? 0);
+      return `Extraction finished: ${items ?? "?"} items, ${errors} errors, ${warnings} warnings`;
+    }
+    case "document.failed":
+      return `Extraction failed (${detail(e.details, "code") ?? "unknown"})`;
+    case "document.retried":
+      return "Started the extraction again";
+    case "document.deleted":
+      return `Deleted BOQ ${detail(e.details, "title") ?? ""}`.trim();
   }
   const [entity, verb] = e.action.split(".");
   const noun = { country: "country", city: "city", buildingType: "building type", stage: "stage" }[entity] ?? entity;

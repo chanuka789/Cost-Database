@@ -2,3 +2,5 @@
 __pycache__/
 .pytest_cache/
 *.pyc
+# Client BOQs used as golden test files — confidential, never committed.
+tests/fixtures/private/

@@ -8,7 +8,7 @@
 *.xlsx
 *.xls
 *.csv
-uploads/
+/uploads/
 
 # Dependencies and builds
 node_modules/

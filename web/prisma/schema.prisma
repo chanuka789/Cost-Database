@@ -1,5 +1,7 @@
 // QSGS Cost Database — see docs/BUILD_PLAN.md section 4.
-// Phase 1 tables: users, auth tokens, lookup lists, audit log, settings.
+// Phase 1: users, auth tokens, lookup lists, audit log, settings.
+// Phase 2: projects, uploaded BOQs, extraction jobs, and
+//          bills › sections › main descriptions › items › rates.
 
 generator client {
   provider = "prisma-client-js"
@@ -54,8 +56,11 @@ model User {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  authTokens AuthToken[] @relation("TokenOwner")
-  auditLogs  AuditLog[]
+  authTokens         AuthToken[]   @relation("TokenOwner")
+  auditLogs          AuditLog[]
+  projectsCreated    Project[]     @relation("ProjectCreator")
+  documentsUploaded  BoqDocument[] @relation("DocumentUploader")
+  documentsPublished BoqDocument[] @relation("DocumentPublisher")
 
   @@map("users")
 }
@@ -89,7 +94,8 @@ model Country {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  cities City[]
+  cities   City[]
+  projects Project[]
 
   @@map("countries")
 }
@@ -103,7 +109,8 @@ model City {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  country Country @relation(fields: [countryId], references: [id], onDelete: Restrict)
+  country  Country   @relation(fields: [countryId], references: [id], onDelete: Restrict)
+  projects Project[]
 
   @@unique([countryId, name])
   @@map("cities")
@@ -117,6 +124,8 @@ model BuildingType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  projects Project[]
+
   @@map("building_types")
 }
 
@@ -128,6 +137,8 @@ model Stage {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  documents BoqDocument[]
 
   @@map("stages")
 }
@@ -155,4 +166,214 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 
   @@map("app_settings")
+}
+
+// ── Phase 2: projects and BOQs ────────────────────────────────────────────
+
+enum RateType {
+  PTE
+  TENDER
+}
+
+enum DocumentStatus {
+  PROCESSING
+  REVIEW
+  PUBLISHED
+  FAILED
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+/// Whether a date is exact (DAY) or only its month is known (MONTH, stored as the 1st).
+enum DatePrecision {
+  DAY
+  MONTH
+}
+
+model Project {
+  id                   String        @id @default(cuid())
+  /// Unique regardless of capitals (index in migration).
+  name                 String
+  /// QSGS project number, e.g. "26-1120". Unique when given.
+  projectNo            String?
+  projectDate          DateTime      @db.Date
+  projectDatePrecision DatePrecision @default(DAY)
+  client               String?
+  consultant           String?
+  countryId            String
+  cityId               String
+  buildingTypeId       String
+  notes                String?
+  createdById          String
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  country      Country       @relation(fields: [countryId], references: [id], onDelete: Restrict)
+  city         City          @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  buildingType BuildingType  @relation(fields: [buildingTypeId], references: [id], onDelete: Restrict)
+  createdBy    User          @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  documents    BoqDocument[]
+
+  @@index([countryId, cityId])
+  @@index([buildingTypeId])
+  @@map("projects")
+}
+
+/// One uploaded BOQ file (a PTE or a tender return) for a project and stage.
+model BoqDocument {
+  id             String         @id @default(cuid())
+  projectId      String
+  title          String
+  rateType       RateType
+  stageId        String
+  boqDate        DateTime       @db.Date
+  currency       Currency
+  status         DocumentStatus @default(PROCESSING)
+  fileKey        String
+  fileName       String
+  fileSize       Int
+  /// The same file can't be uploaded twice.
+  fileSha256     String         @unique
+  fileType       String
+  pageCount      Int?
+  itemCount      Int            @default(0)
+  errorCount     Int            @default(0)
+  warningCount   Int            @default(0)
+  /// Document-level problems from the extractor (page totals, stray numbers).
+  issues         Json?
+  /// What the extractor read on the cover (project, date, stage).
+  cover          Json?
+  extractor      String?
+  failureCode    String?
+  failureMessage String?
+  uploadedById   String
+  publishedById  String?
+  publishedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  stage       Stage           @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  uploadedBy  User            @relation("DocumentUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  publishedBy User?           @relation("DocumentPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  jobs        ExtractionJob[]
+  bills       Bill[]
+  items       BoqItem[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("boq_documents")
+}
+
+model ExtractionJob {
+  id         String    @id @default(cuid())
+  documentId String
+  status     JobStatus @default(QUEUED)
+  /// What it is doing now, shown to the admin ("Reading the BOQ", "Saving items").
+  step       String?
+  error      String?
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  document BoqDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, createdAt])
+  @@map("extraction_jobs")
+}
+
+model Bill {
+  id         String @id @default(cuid())
+  documentId String
+  billNo     String
+  title      String
+  sortOrder  Int
+
+  document BoqDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  sections Section[]
+
+  @@index([documentId])
+  @@map("bills")
+}
+
+model Section {
+  id            String  @id @default(cuid())
+  billId        String
+  parentHeading String?
+  heading       String?
+  sortOrder     Int
+
+  bill             Bill              @relation(fields: [billId], references: [id], onDelete: Cascade)
+  mainDescriptions MainDescription[]
+
+  @@index([billId])
+  @@map("sections")
+}
+
+/// The paragraph above a group of items, stored once. Empty text = items with no paragraph.
+model MainDescription {
+  id        String  @id @default(cuid())
+  sectionId String
+  text      String
+  pageFrom  Int
+  pageTo    Int
+  sortOrder Int
+  aiTouched Boolean @default(false)
+
+  section Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  items   BoqItem[]
+
+  @@index([sectionId])
+  @@map("main_descriptions")
+}
+
+model BoqItem {
+  id                String   @id @default(cuid())
+  documentId        String
+  mainDescriptionId String
+  itemRef           String
+  description       String
+  /// Heading — main description — item text; rebuilt whenever a part changes.
+  fullDescription   String
+  unitRaw           String?
+  unit              String?
+  qty               Decimal? @db.Decimal(18, 4)
+  page              Int
+  /// Order within the document.
+  sortOrder         Int
+  /// [{ code, severity, message }] from the automatic checks.
+  flags             Json     @default("[]")
+  aiTouched         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  document        BoqDocument     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  mainDescription MainDescription @relation(fields: [mainDescriptionId], references: [id], onDelete: Cascade)
+  rates           Rate[]
+
+  @@unique([documentId, sortOrder])
+  @@index([mainDescriptionId])
+  @@map("boq_items")
+}
+
+/// A rate for an item: the PTE rate (no bidder), or one contractor's rate in a tender return.
+model Rate {
+  id       String   @id @default(cuid())
+  itemId   String
+  /// Tender returns (Phase 6); null for PTE.
+  bidderId String?
+  rate     Decimal? @db.Decimal(18, 4)
+  amount   Decimal? @db.Decimal(20, 2)
+  /// "Included", "By others"… when a word is written instead of a number.
+  rateNote String?
+  currency Currency
+
+  item BoqItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@map("rates")
 }

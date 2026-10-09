@@ -2,7 +2,7 @@
 //   node scripts/dev.mjs   (or: npm run dev, from the repo root)
 // Local PostgreSQL, the web app (http://localhost:3100) and the extractor
 // (http://localhost:8100). Ctrl+C stops all three.
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import net from "node:net";
@@ -63,8 +63,17 @@ let stopping = false;
 function shutdown() {
   if (stopping) return;
   stopping = true;
-  for (const c of children) if (!c.killed) c.kill("SIGINT");
-  setTimeout(() => process.exit(0), 1500);
+  // Stop the database cleanly first, with PostgreSQL's own tool.
+  const pgCtl = path.join(web, "node_modules", "@embedded-postgres", isWin ? "windows-x64" : `${process.platform}-${process.arch}`, "native", "bin", isWin ? "pg_ctl.exe" : "pg_ctl");
+  if (existsSync(pgCtl)) spawnSync(pgCtl, ["stop", "-D", path.join(web, ".local-db"), "-m", "fast"], { stdio: "ignore" });
+  for (const c of children) {
+    if (c.exitCode !== null || !c.pid) continue;
+    // On Windows a child started through a shell has its own children (next,
+    // uvicorn's worker); kill the whole tree or they keep running on their ports.
+    if (isWin) spawnSync("taskkill", ["/PID", String(c.pid), "/T", "/F"], { stdio: "ignore" });
+    else c.kill("SIGINT");
+  }
+  setTimeout(() => process.exit(0), 1000);
 }
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
@@ -110,7 +119,7 @@ run("migrate", "90", "npx", ["prisma", "migrate", "deploy"], { cwd: web }, true)
     return shutdown();
   }
   run("web", "34", "npm", ["run", "dev"], { cwd: web });
-  run("extractor", "33", python, ["-m", "uvicorn", "app.main:app", "--port", "8100", "--reload"], {
+  run("extractor", "33", python, ["-m", "uvicorn", "app.main:app", "--port", "8100"], {
     cwd: extractor,
     env: { EXTRACTOR_TOKEN: webEnv.EXTRACTOR_TOKEN ?? "" },
   });

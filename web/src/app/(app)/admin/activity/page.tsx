@@ -16,11 +16,13 @@ const AREAS = [
   { key: "auth", label: "Sign-ins" },
   { key: "user", label: "Users" },
   { key: "lists", label: "Lists" },
+  { key: "boqs", label: "BOQs" },
 ] as const;
 
 function areaFilter(area: string): Prisma.AuditLogWhereInput {
   if (area === "auth") return { action: { startsWith: "auth." } };
   if (area === "user") return { action: { startsWith: "user." } };
+  if (area === "boqs") return { OR: [{ action: { startsWith: "document." } }, { action: { startsWith: "project." } }] };
   if (area === "lists") {
     return { OR: ["country.", "city.", "buildingType.", "stage."].map((p) => ({ action: { startsWith: p } })) };
   }

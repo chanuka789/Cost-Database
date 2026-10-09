@@ -57,6 +57,8 @@ npm run dev
 - App: http://localhost:3100
 - Extractor health: http://localhost:8100/health
 
+The web app reloads on save. The extractor doesn't (uvicorn's auto-reload is unreliable on Windows and can keep serving old code) — after changing extractor code, stop `npm run dev` with Ctrl+C and start it again.
+
 ## Tests
 
 ```bash

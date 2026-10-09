@@ -2,7 +2,7 @@
 
 **Owner:** Quantity Surveying Global Solutions (QSGS)
 **Version:** 1.0 — 9 October 2026
-**Status:** Phase 0 and Phase 1 complete (9 Oct 2026). Next: Phase 2 — PTE extraction.
+**Status:** Phases 0, 1 and 2 complete (9 Oct 2026). Next: Phase 3 — review and publish.
 
 ---
 
@@ -405,7 +405,11 @@ Each phase ends with a working, demonstrable result.
 - Admin: Users and Lists screens; audit log.
 - **Done when:** an admin can invite a user, the user can sign in, and users cannot reach admin pages or APIs.
 
-### Phase 2 — PTE extraction
+### Phase 2 — PTE extraction ✅
+- Built: PDF reader (column positions per page; rows cut at gaps so item references on the first line, centred, or above the text all work; footers and collection/summary pages skipped; damaged dashes/apostrophes repaired), Excel reader, hierarchy builder (bill › heading › main description › items, parent headings, ditto), validation checks, cover reading (project, BOQ date, stage), upload screen with duplicate and similar-project protection, background extraction with progress, retry and delete, upload page showing everything extracted.
+- Q-Walk SD 50%: 184 / 184 items with the right hierarchy, every item reference and quantity matching the PDF page by page; golden test passes.
+- Excel reader is tested on generated workbooks only — confirm with the first real Excel BOQ and add it as a golden file.
+
 - Extractor service from the prototype: PDF parser, hierarchy builder, validation, golden test with Q-Walk.
 - Excel parser.
 - Upload screen, file storage, duplicate check, job progress.
