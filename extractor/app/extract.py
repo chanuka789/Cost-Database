@@ -8,14 +8,14 @@ from .validate import check_items, check_page_totals
 VERSION = "1.0.0"
 
 
-def extract(path: str, file_type: str) -> ExtractResult:
+def extract(path: str, file_type: str, column_mapping: dict | None = None) -> ExtractResult:
     if file_type == "pdf":
         read = read_pdf(path)
         parser = "pdf-columns"
     elif file_type == "xlsx":
         from .excel_reader import read_excel
 
-        read = read_excel(path)
+        read = read_excel(path, column_mapping)
         parser = "xlsx-columns"
     else:
         raise ExtractError("UNSUPPORTED", "Only PDF and Excel (.xlsx) BOQs are supported.")

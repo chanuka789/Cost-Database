@@ -5,6 +5,7 @@ import { fileProblem } from "@/lib/upload-validation";
 import { sha256 } from "@/lib/file-hash";
 import { ExtractorRejected, ExtractorUnavailable, inspectFile } from "@/lib/extractor-client";
 import { findSimilarProject } from "@/lib/project-match";
+import { columnMappingSchema } from "@/lib/ai-validation";
 
 /**
  * First step of an upload: the admin picks a file and we read its cover so
@@ -18,6 +19,9 @@ export async function POST(req: Request) {
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) return jsonError("Choose a file to upload.", 400);
+  let mapping;
+  try { const raw = form?.get("column_mapping"); mapping = typeof raw === "string" ? columnMappingSchema.parse(JSON.parse(raw)) : null; }
+  catch { return jsonError("Check the column mapping.", 400); }
   const buf = Buffer.from(await file.arrayBuffer());
   const problem = fileProblem(file.name, buf.length, buf.subarray(0, 8));
   if (problem) return jsonError(problem, 400);
@@ -30,7 +34,7 @@ export async function POST(req: Request) {
 
   let inspected;
   try {
-    inspected = await inspectFile(buf, file.name);
+    inspected = await inspectFile(buf, file.name, mapping);
   } catch (e) {
     if (e instanceof ExtractorRejected) return jsonError(e.message, 422, { code: e.code });
     if (e instanceof ExtractorUnavailable) return jsonError(e.message, 503);

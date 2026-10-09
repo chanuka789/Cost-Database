@@ -15,7 +15,11 @@ import { findSimilarProject } from "@/lib/project-match";
 import { cn } from "@/lib/utils";
 
 type Currency = "SAR" | "AED" | "QAR";
+import { AiUploadChoice, type AiUploadOptions } from "@/components/ai/upload-choice";
+import { ColumnMappingEditor } from "@/components/ai/column-mapping";
+import type { ColumnMapping } from "@/lib/ai-validation";
 export type UploadFormData = {
+  ai: AiUploadOptions;
   projects: { id: string; name: string; projectNo: string | null; city: string; buildingType: string; currency: Currency }[];
   countries: { id: string; name: string; currency: Currency; cities: { id: string; name: string }[] }[];
   buildingTypes: { id: string; name: string }[];
@@ -86,6 +90,7 @@ export function UploadForm({ data, initialProjectId }: { data: UploadFormData; i
   const [inspecting, setInspecting] = useState(false);
   const [inspect, setInspect] = useState<Inspect | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [mapping, setMapping] = useState<ColumnMapping | null>(null);
   const [fromCover, setFromCover] = useState<Set<string>>(new Set());
 
   const [projectMode, setProjectMode] = useState<"existing" | "new">(data.projects.length ? "existing" : "new");
@@ -102,7 +107,7 @@ export function UploadForm({ data, initialProjectId }: { data: UploadFormData; i
     client: "",
     consultant: "",
   });
-  const [doc, setDoc] = useState({ title: "", rateType: "PTE" as const, stageId: "", boqDate: "", currency: "" as Currency | "" });
+  const [doc, setDoc] = useState({ title: "", rateType: "PTE" as const, stageId: "", boqDate: "", currency: "" as Currency | "", aiChoice: data.ai.enabled && data.ai.defaultChoice !== "OFF" ? "DEFAULT" : "OFF", aiAllowFallback: false });
   const [currencyTouched, setCurrencyTouched] = useState(false);
 
   const [attempted, setAttempted] = useState(false);
@@ -123,7 +128,7 @@ export function UploadForm({ data, initialProjectId }: { data: UploadFormData; i
     });
   }
 
-  async function chooseFile(f: File | null) {
+  async function chooseFile(f: File | null, columns: ColumnMapping | null = null) {
     setFileError(null);
     setInspect(null);
     setSubmitError(null);
@@ -136,6 +141,8 @@ export function UploadForm({ data, initialProjectId }: { data: UploadFormData; i
     setInspecting(true);
     const body = new FormData();
     body.append("file", f);
+    if (columns) body.append("column_mapping", JSON.stringify(columns));
+    setMapping(columns);
     try {
       const res = await fetch("/api/uploads/inspect", { method: "POST", body });
       const json = await res.json();
@@ -191,7 +198,7 @@ export function UploadForm({ data, initialProjectId }: { data: UploadFormData; i
   }, [query, data.projects]);
 
   const payload =
-    projectMode === "existing" ? { projectMode, projectId, document: doc } : { projectMode, project, document: doc };
+    projectMode === "existing" ? { projectMode, projectId, document: { ...doc, columnMapping: mapping } } : { projectMode, project, document: { ...doc, columnMapping: mapping } };
   const check = uploadSchema.safeParse(payload);
   const errors: Record<string, string> = {};
   if (!check.success) {
@@ -579,6 +586,10 @@ export function UploadForm({ data, initialProjectId }: { data: UploadFormData; i
         </div>
       </Step>
 
+      <Step n={4} title="AI assistance" description="Choose who receives this project's BOQ text. You can always extract with AI off.">
+        <AiUploadChoice options={data.ai} choice={doc.aiChoice} allowFallback={doc.aiAllowFallback} onChange={(aiChoice, aiAllowFallback) => setDoc({ ...doc, aiChoice, aiAllowFallback })} />
+        {file?.name.toLowerCase().endsWith(".xlsx") ? <ColumnMappingEditor key={file.name + file.lastModified} choice={doc.aiChoice} allowFallback={doc.aiAllowFallback} disabled={inspecting || submitting} onApply={async columns => { await chooseFile(file, columns); }} /> : null}
+      </Step>
       <div className="flex flex-col gap-3">
         {submitError ? (
           <FormMessage>

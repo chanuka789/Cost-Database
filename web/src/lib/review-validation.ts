@@ -25,6 +25,7 @@ const fields = z.object({
   rateNote: z.string().trim().max(200).nullable(),
 });
 export const reviewActionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("aiSuggestion"), suggestionId: z.string().min(1), accept: z.boolean() }),
   z.object({ action: z.literal("item"), itemId: z.string(), fields }),
   z.object({
     action: z.literal("group"),

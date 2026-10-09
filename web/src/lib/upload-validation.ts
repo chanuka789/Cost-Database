@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { columnMappingSchema } from "./ai-validation";
 
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
@@ -49,6 +50,9 @@ export const newProjectSchema = z
   });
 
 export const documentSchema = z.object({
+  aiChoice: z.string().min(1).max(100).default("OFF"),
+  aiAllowFallback: z.boolean().default(false),
+  columnMapping: columnMappingSchema.nullable().default(null),
   title: z.string().trim().min(2, "Enter a title for this BOQ.").max(160, "Use 160 characters or fewer."),
   rateType: z.literal("PTE", { error: "Only PTE BOQs can be uploaded for now. Tender returns come in a later phase." }),
   stageId: z.string().min(1, "Choose the project stage."),

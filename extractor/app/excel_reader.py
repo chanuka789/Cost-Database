@@ -67,8 +67,20 @@ def _num(value) -> str | None:
     return str(value).strip()
 
 
-def _find_header(ws, max_rows: int = 40) -> _Cols | None:
+def _find_header(ws, max_rows: int = 40, mapping: dict | None = None) -> _Cols | None:
     for r, row in enumerate(ws.iter_rows(min_row=1, max_row=max_rows), start=1):
+        if mapping:
+            exact = {}
+            for cell in row:
+                label = _text(cell.value)
+                if label:
+                    exact.setdefault(label, []).append(cell.column)
+            if all(v is None or len(exact.get(v, [])) == 1 for v in mapping.values()):
+                def mapped(field):
+                    label = mapping[field]
+                    return exact[label][0] if label else None
+                return _Cols(ref=mapped("reference"), desc=mapped("description"), qty=mapped("quantity"), unit=mapped("unit"), rate=mapped("rate"), amount=mapped("amount"), header_row=r)
+            continue
         labels = {c.column: _text(c.value).upper() for c in row if _text(c.value)}
 
         def col(*names: str) -> int | None:
@@ -88,7 +100,7 @@ def _find_header(ws, max_rows: int = 40) -> _Cols | None:
     return None
 
 
-def read_excel(path: str) -> ExcelRead:
+def read_excel(path: str, column_mapping: dict | None = None) -> ExcelRead:
     try:
         wb = load_workbook(path, data_only=True)
     except InvalidFileException as e:
@@ -103,7 +115,7 @@ def read_excel(path: str) -> ExcelRead:
     sheets = [ws for ws in wb.worksheets if ws.sheet_state == "visible"]
 
     for sheet_no, ws in enumerate(sheets, start=1):
-        cols = _find_header(ws)
+        cols = _find_header(ws, mapping=column_mapping)
         if cols is None:
             if not cover_done:
                 text = " ".join(_text(c.value) for row in ws.iter_rows(max_row=60) for c in row if _text(c.value))

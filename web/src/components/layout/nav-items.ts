@@ -1,4 +1,4 @@
-import { Activity, FolderKanban, ListChecks, Search, Upload, Users, type LucideIcon } from "lucide-react";
+import { Activity, FolderKanban, ListChecks, Search, Sparkles, Upload, Users, type LucideIcon } from "lucide-react";
 
 export type NavItem = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean };
 export type NavSection = { label?: string; adminOnly?: boolean; items: NavItem[] };
@@ -17,6 +17,7 @@ export const NAV: NavSection[] = [
       { href: "/uploads", label: "Uploads", icon: Upload },
       { href: "/admin/users", label: "Users", icon: Users },
       { href: "/admin/lists", label: "Lists", icon: ListChecks },
+      { href: "/admin/ai", label: "AI helper", icon: Sparkles },
       { href: "/admin/activity", label: "Activity log", icon: Activity },
     ],
   },

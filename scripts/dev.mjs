@@ -121,6 +121,6 @@ run("migrate", "90", "npx", ["prisma", "migrate", "deploy"], { cwd: web }, true)
   run("web", "34", "npm", ["run", "dev"], { cwd: web });
   run("extractor", "33", python, ["-m", "uvicorn", "app.main:app", "--port", "8100"], {
     cwd: extractor,
-    env: { EXTRACTOR_TOKEN: webEnv.EXTRACTOR_TOKEN ?? "" },
+    env: { EXTRACTOR_TOKEN: webEnv.EXTRACTOR_TOKEN ?? "", AI_KEYS_ENCRYPTION_KEY: webEnv.AI_KEYS_ENCRYPTION_KEY ?? "" },
   });
 });

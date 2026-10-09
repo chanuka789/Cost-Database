@@ -11,6 +11,7 @@ import {
   type ReviewAction,
 } from "./review-validation";
 import { validateItem } from "./review-checks";
+import { AiError, applyAiSuggestion } from "./ai-service";
 
 export class ReviewError extends Error {
   constructor(
@@ -44,6 +45,8 @@ export async function applyReview(
         throw new ReviewError(
           "Another reviewer changed this BOQ. Refresh and try again.",
         );
+      if (doc.aiStatus === "RUNNING" || doc.aiStatus === "QUEUED")
+        throw new ReviewError("AI suggestions are still being prepared. Wait for completion before reviewing.");
       const getItems = async (itemIds: string[]) => {
         const items = await tx.boqItem.findMany({
           where: { documentId: id, id: { in: itemIds } },
@@ -89,7 +92,10 @@ export async function applyReview(
           });
         }
       };
-      if (op.action === "item") {
+      if (op.action === "aiSuggestion") {
+        try { await applyAiSuggestion(tx, id, op.suggestionId, op.accept, userId); }
+        catch (e) { if (e instanceof AiError) throw new ReviewError(e.message); throw e; }
+      } else if (op.action === "item") {
         const [item] = await getItems([op.itemId]);
         if (item.rates.some((r) => r.bidderId))
           throw new ReviewError("Tender rates are reviewed in a later phase.");
@@ -158,6 +164,8 @@ export async function applyReview(
         });
       } else if (op.action === "check") {
         const items = await getItems(op.itemIds);
+        if (op.checked && await tx.aiSuggestion.count({ where: { documentId: id, itemId: { in: op.itemIds }, status: "PENDING" } }))
+          throw new ReviewError("Accept or reject AI suggestions for these items before checking them.");
         if (
           op.checked &&
           items.some((i) =>
@@ -295,6 +303,8 @@ export async function applyReview(
             data: { acceptedIssues: accepted },
           });
       } else if (op.action === "publish") {
+        if (await tx.aiSuggestion.count({ where: { documentId: id, status: "PENDING" } }))
+          throw new ReviewError("Review all AI suggestions before publishing.");
         if (doc.rateType !== "PTE")
           throw new ReviewError(
             "Tender publishing requires bidder mapping in Phase 6.",

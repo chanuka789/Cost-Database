@@ -8,6 +8,23 @@ from app.extract import extract
 from app.pdf_reader import ExtractError
 
 
+def test_reviewed_mapping_preserves_numeric_source(tmp_path):
+    path = tmp_path / "unknown-layout.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["Code", "Work", "Count", "Measure", "Cost", "Extension"])
+    ws.append(["A", "60mm concrete pavrs", 12.5, "m2", 8.75, 109.38])
+    wb.save(path)
+    with pytest.raises(ExtractError):
+        extract(str(path), "xlsx")
+    mapping = {"reference": "Code", "description": "Work", "quantity": "Count", "unit": "Measure", "rate": "Cost", "amount": "Extension"}
+    result = extract(str(path), "xlsx", mapping)
+    items = [i for b in result.bills for s in b.sections for m in s.main_descriptions for i in m.items]
+    assert len(items) == 1
+    assert str(items[0].qty) == "12.5" and str(items[0].rate) == "8.75"
+    assert str(items[0].amount) == "109.38" and items[0].description == "60mm concrete pavrs"
+
+
 def make_boq(path: Path) -> None:
     wb = Workbook()
     cover = wb.active

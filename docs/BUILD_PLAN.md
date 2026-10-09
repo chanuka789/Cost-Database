@@ -2,7 +2,7 @@
 
 **Owner:** Quantity Surveying Global Solutions (QSGS)
 **Version:** 1.0 — 9 October 2026
-**Status:** Phases 0–4 implemented locally. Next: Phase 5 — AI helper. Production rollout pending.
+**Status:** Phases 0–5 implemented locally. Next: Phase 6 — Tender returns (sample needed). Live AI credential verification and production rollout pending.
 
 ---
 
@@ -427,13 +427,17 @@ Each phase ends with a working, demonstrable result.
 ### Phase 4 — Rate search ✅
 - Built: authenticated published-only full-text and typo-tolerant search over the full description chain and project name/number; dimensions are matched exactly; multi-project/stage filters, country/city, building type, rate type, unit, BOQ/project dates and heading filters; SAR/AED/QAR display conversion; SQL median/min/max across all matching rates with one-unit safeguards; relevance/newest ranking and pagination.
 - Item panel includes project/source links, all item rates, exact-description/unit history chart and sibling items. Basket persists per user in the browser tab across searches and exports a formatted Excel workbook with complete project metadata, source and converted values. Export rechecks publication and preserves text and large numeric precision.
-- Trade currently follows BOQ section headings; AI trade tagging is Phase 5. Bidder ID filters appear when published bidder rates exist; tender extraction and bidder mapping remain Phase 6. Timeline shows up to 500 exact-description matches and labels truncation.
-- Verified locally: permission/validation tests, Postgres matching/conversion/statistics tests, 5,000-rate pagination/performance test under 500 ms, valid downloaded Excel, desktop and mobile browser interactions. Real priced Q-Walk remains in review and is not searchable until an admin publishes it.
+- Trade uses accepted AI trade tags with BOQ section headings as a fallback. Bidder ID filters appear when published bidder rates exist; tender extraction and bidder mapping remain Phase 6. Timeline shows up to 500 exact-description matches and labels truncation.
+- Verified locally: permission/validation tests, Postgres matching/conversion/statistics tests, 5,000-rate pagination/performance test under 500 ms, valid downloaded Excel, desktop and mobile browser interactions. Only published BOQs are searchable; BOQs still in review are excluded.
 - Full-text + typo-tolerant search, filters, currency switch, statistics.
 - Item detail panel, rate-over-time chart, basket and Excel export.
 - **Done when:** searching "60mm concrete paver" returns the correct items with correct statistics, under 500 ms.
 
-### Phase 5 — AI helper
+### Phase 5 — AI helper (implemented locally)
+- Built: admin provider setup, synthetic connection tests before enablement, encrypted credentials decrypted only in the extractor, default and opt-in ordered fallbacks, per-task models, global toggle, serialized monthly budget reservations, 80% warning, token/cost/latency logging and upload-level usage.
+- AI produces separate item-text, trade and uncertain-link proposals. Strict schemas reject extra/numeric fields, unknown IDs and changed numeric tokens. Admin acceptance/rejection retains originals and resets checks; pending proposals block checking/publishing. Accepted trade tags feed rate search. Unfamiliar Excel header mappings can be suggested and explicitly reviewed before the deterministic parser re-reads numeric cells.
+- Each upload stores consented provider configurations; newly added/changed recipients are excluded. AI-off and provider/budget failures retain normal extraction. Time-bounded/partial processing is labelled, and interrupted runs become reviewable.
+- Verified locally with synthetic data: encrypted-key interoperability, JSON/endpoint restrictions, authentication, numeric preservation, review and publication gates, concurrent budgets, failure/retry/fallback behavior, mapping, desktop/mobile review interactions and production build. Live provider credentials still need an admin-entered key; no real BOQ was sent to external AI.
 - AI settings screen: add/test/enable providers (DeepSeek, Meta Muse Spark 1.3 / Contributor, OpenRouter, custom), encrypted keys, default + fallback order, per-task models, budgets, usage dashboard.
 - One OpenAI-compatible AI client with fallback, strict JSON responses, retries, cost logging.
 - Text cleanup, uncertain-link checking, trade tagging, review highlighting, admin toggle.

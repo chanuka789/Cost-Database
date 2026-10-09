@@ -18,7 +18,7 @@ const joins = Prisma.sql`FROM rates r JOIN boq_items i ON i.id=r."itemId"
   JOIN building_types bt ON bt.id=p."buildingTypeId" JOIN stages st ON st.id=d."stageId"
   JOIN main_descriptions m ON m.id=i."mainDescriptionId" JOIN sections s ON s.id=m."sectionId"
   JOIN bills b ON b.id=s."billId"`;
-const trade = Prisma.sql`COALESCE(NULLIF(s.heading,''),NULLIF(s."parentHeading",''),'Unclassified')`;
+const trade = Prisma.sql`COALESCE(NULLIF(i.trade,''),NULLIF(s.heading,''),NULLIF(s."parentHeading",''),'Unclassified')`;
 function multiplier(currency: DisplayCurrency) {
   return Prisma.sql`(${usdPegs[currency]}::numeric / CASE r.currency WHEN 'SAR' THEN 3.75::numeric WHEN 'AED' THEN 3.6725::numeric ELSE 3.64::numeric END)`;
 }

@@ -245,6 +245,12 @@ model BoqDocument {
   errorCount     Int            @default(0)
   warningCount   Int            @default(0)
   reviewVersion  Int            @default(0)
+  aiChoice       String         @default("OFF")
+  aiAllowFallback Boolean       @default(false)
+  aiRecipients   Json           @default("[]")
+  columnMapping  Json?
+  aiStatus       String         @default("OFF")
+  aiMessage      String?
   acceptedIssues Json           @default("[]")
   /// Document-level problems from the extractor (page totals, stray numbers).
   issues         Json?
@@ -266,6 +272,8 @@ model BoqDocument {
   jobs        ExtractionJob[]
   bills       Bill[]
   items       BoqItem[]
+  aiSuggestions AiSuggestion[]
+  aiUsage       AiUsage[]
 
   @@index([projectId])
   @@index([status])
@@ -352,6 +360,7 @@ model BoqItem {
   /// [{ code, severity, message }] from the automatic checks.
   flags             Json     @default("[]")
   aiTouched         Boolean  @default(false)
+  trade             String?
   checkedAt         DateTime?
   checkedById       String?
   acceptedFlags     Json     @default("[]")
@@ -364,6 +373,74 @@ model BoqItem {
   @@unique([documentId, sortOrder])
   @@index([mainDescriptionId])
   @@map("boq_items")
+}
+
+/// Credentials are encrypted in the web service and decrypted only by the extractor.
+model AiProvider {
+  id String @id @default(cuid())
+  name String
+  type String
+  baseUrl String
+  model String
+  taskModels Json @default("{}")
+  encryptedKey String
+  keyLast4 String
+  enabled Boolean @default(false)
+  priority Int @default(0)
+  inputPrice Float
+  outputPrice Float
+  monthlyBudget Float?
+  dataPolicy String
+  testFingerprint String?
+  testedAt DateTime?
+  testStatus String?
+  testLatencyMs Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  usage AiUsage[]
+  @@map("ai_providers")
+}
+
+/// Each attempt has a reservation; uncertain failures retain it so budgets fail closed.
+model AiUsage {
+  id String @id @default(cuid())
+  providerId String
+  documentId String?
+  task String
+  model String
+  status String @default("RESERVED")
+  inputTokens Int @default(0)
+  outputTokens Int @default(0)
+  cost Float @default(0)
+  reservedCost Float
+  latencyMs Int?
+  errorCode String?
+  createdAt DateTime @default(now())
+  provider AiProvider @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  document BoqDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  @@index([providerId, createdAt])
+  @@index([documentId])
+  @@map("ai_usage")
+}
+
+/// Proposal and original remain available after acceptance/rejection. Never contains numeric fields.
+model AiSuggestion {
+  id String @id @default(cuid())
+  documentId String
+  itemId String
+  kind String
+  original String
+  proposed String
+  reason String
+  providerName String
+  model String
+  status String @default("PENDING")
+  reviewedById String?
+  reviewedAt DateTime?
+  createdAt DateTime @default(now())
+  document BoqDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  @@index([documentId, status])
+  @@map("ai_suggestions")
 }
 
 /// A rate for an item: the PTE rate (no bidder), or one contractor's rate in a tender return.

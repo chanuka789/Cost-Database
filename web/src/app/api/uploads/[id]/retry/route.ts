@@ -13,7 +13,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const job = await prisma.$transaction(async (tx) => {
     // Only from FAILED or REVIEW, checked in the update itself so two clicks can't start two runs.
     const claimed = await tx.boqDocument.updateMany({
-      where: { id, status: { in: ["FAILED", "REVIEW"] } },
+      where: { id, status: { in: ["FAILED", "REVIEW"] }, aiStatus: { notIn: ["RUNNING", "QUEUED"] } },
       data: { status: "PROCESSING", failureCode: null, failureMessage: null, reviewVersion: { increment: 1 }, acceptedIssues: [] },
     });
     if (claimed.count !== 1) return null;

@@ -8,6 +8,7 @@ import { sha256 } from "@/lib/file-hash";
 import { boqFileKey, storage } from "@/lib/storage";
 import { runExtraction } from "@/lib/extraction-runner";
 import { findSimilarProject } from "@/lib/project-match";
+import { uploadAiSelection } from "@/lib/ai-service";
 
 /**
  * Creates an upload: stores the file, creates the project (if new), the BOQ
@@ -31,6 +32,9 @@ export async function POST(req: Request) {
   }
   if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Check the form.", 400);
   const input = parsed.data;
+  let aiSelection;
+  try { aiSelection = await uploadAiSelection(input.document.aiChoice, input.document.aiAllowFallback); }
+  catch { return jsonError("Choose an enabled AI provider or switch AI off.", 400); }
 
   const dateProblem = boqDateProblem(input.document.boqDate);
   if (dateProblem) return jsonError(dateProblem, 400);
@@ -106,6 +110,11 @@ export async function POST(req: Request) {
         data: {
           projectId,
           title: d.title,
+          aiChoice: aiSelection.aiChoice,
+          aiRecipients: aiSelection.aiRecipients,
+          ...(d.columnMapping ? { columnMapping: d.columnMapping } : {}),
+          aiAllowFallback: d.aiAllowFallback,
+          aiStatus: aiSelection.aiChoice === "OFF" ? "OFF" : "QUEUED",
           rateType: d.rateType,
           stageId: d.stageId,
           boqDate: new Date(`${d.boqDate}T00:00:00Z`),
@@ -120,7 +129,7 @@ export async function POST(req: Request) {
       });
       const job = await tx.extractionJob.create({ data: { documentId: document.id, step: "Waiting to start" } });
       await audit(
-        { userId: admin.id, action: "document.uploaded", entity: "document", entityId: document.id, details: { title: d.title, file: file.name } },
+        { userId: admin.id, action: "document.uploaded", entity: "document", entityId: document.id, details: { title: d.title, file: file.name, aiChoice: aiSelection.aiChoice, aiAllowFallback: d.aiAllowFallback, columnMapping: d.columnMapping } },
         tx,
       );
       return { documentId: document.id, jobId: job.id };

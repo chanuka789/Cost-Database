@@ -1,5 +1,5 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -261,7 +261,13 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
-  const busy = saving || pending;
+  const aiRunning = doc.aiStatus === "RUNNING" || doc.aiStatus === "QUEUED";
+  const busy = saving || pending || aiRunning;
+  useEffect(() => {
+    if (!aiRunning) return;
+    const timer = setInterval(() => router.refresh(), 3000);
+    return () => clearInterval(timer);
+  }, [aiRunning, router]);
   const [page, setPage] = useState(
     () =>
       doc.bills.flatMap((b) =>
@@ -278,6 +284,8 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
   const [publish, setPublish] = useState(false);
   const groups = doc.bills.flatMap((b) => b.sections.flatMap((s) => s.groups));
   const items = groups.flatMap((g) => g.items);
+  const itemIds = new Set(items.map(i => i.id));
+  const archivedAi = doc.aiSuggestions.filter(s => !itemIds.has(s.itemId));
   const checked = items.filter((i) => i.checked).length;
   const errors = [
     ...unresolved(doc.issues, doc.acceptedIssues),
@@ -288,7 +296,7 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
     item.page === page &&
     (filter === "all" ||
       (filter === "unchecked" && !item.checked) ||
-      (filter === "ai" && item.aiTouched) ||
+      (filter === "ai" && (item.aiTouched || doc.aiSuggestions.some(s => s.itemId === item.id))) ||
       unresolved(item.flags, item.acceptedFlags).some(
         (f) => f.severity === filter,
       ));
@@ -358,7 +366,7 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
         </div>
         <Button
           disabled={
-            busy || checked !== items.length || !items.length || errors > 0
+            busy || checked !== items.length || !items.length || errors > 0 || doc.aiSuggestions.some(s => s.status === "PENDING")
           }
           onClick={() => setPublish(true)}
         >
@@ -366,6 +374,8 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
           Publish BOQ
         </Button>
       </header>
+      {archivedAi.length ? <details className="qs-card p-4 text-[12px]"><summary className="cursor-pointer font-semibold">AI history from earlier extractions ({archivedAi.length})</summary><div className="mt-3 space-y-3">{archivedAi.map(s => <div key={s.id} className="rounded-md border border-qs-border p-3"><p className="font-semibold">{s.kind} · {s.status} · {s.provider}</p><p className="mt-1 whitespace-pre-wrap break-words">Original: {s.original || "Unclassified"}</p><p className="mt-1 whitespace-pre-wrap break-words">Proposed: {s.proposed}</p><p className="mt-1 text-qs-text-muted">{s.reason}</p></div>)}</div></details> : null}
+      {doc.aiStatus !== "OFF" ? <div className="qs-card space-y-2 p-4 text-[13px]" role="status"><p className="font-semibold">AI helper · {doc.aiStatus}</p><p>{doc.aiMessage ?? "Preparing suggestions. Extraction is saved; review becomes available when AI finishes."}</p><p className="text-qs-text-muted">Accept or reject each suggestion, then check the item against the source. Original text stays in the suggestion history.</p></div> : null}
       <div className="qs-card flex flex-wrap items-center gap-4 px-4 py-3">
         <Check className="size-5 text-qs-brand-text" />
         <div className="flex-1">
@@ -713,6 +723,14 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
                               )}
                             </div>
                             <div className="px-3 pb-3">
+                              {item.aiTouched ? <Badge tone="warning">AI suggestion accepted — review against source</Badge> : null}
+                              {item.trade ? <p className="mt-2 text-[12px]">Trade: {item.trade}</p> : null}
+                              {doc.aiSuggestions.filter(s => s.itemId === item.id).map(s => <div key={s.id} className="my-3 space-y-2 rounded-md border border-qs-brand bg-qs-brand-tint p-3 text-[12px]">
+                                <p className="font-semibold">AI {s.kind.toLowerCase()} suggestion · {s.status.toLowerCase()}</p>
+                                <p className="text-qs-text-muted">{s.provider} · {s.model} · {s.reason}</p>
+                                <div className="grid gap-3 sm:grid-cols-2"><div><strong>Original</strong><p className="mt-1 whitespace-pre-wrap break-words">{s.kind === "LINK" ? groups.find(g => g.id === s.original)?.text || "No main description" : s.original || "Unclassified"}</p></div><div><strong>Suggested</strong><p className="mt-1 whitespace-pre-wrap break-words">{s.kind === "LINK" ? groups.find(g => g.id === s.proposed)?.text || "Group unavailable" : s.proposed}</p></div></div>
+                                {s.status === "PENDING" ? <div className="flex gap-2"><Button size="sm" variant="outline" disabled={busy} onClick={() => mutate({ action: "aiSuggestion", suggestionId: s.id, accept: true })}>Accept suggestion</Button><Button size="sm" variant="ghost" disabled={busy} onClick={() => mutate({ action: "aiSuggestion", suggestionId: s.id, accept: false })}>Reject</Button></div> : null}
+                              </div>)}
                               <Checks
                                 flags={item.flags}
                                 accepted={item.acceptedFlags}
@@ -739,6 +757,7 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
                                   variant="ghost"
                                   disabled={
                                     busy ||
+                                    (!item.checked && doc.aiSuggestions.some(s => s.itemId === item.id && s.status === "PENDING")) ||
                                     (!item.checked &&
                                       unresolved(
                                         item.flags,

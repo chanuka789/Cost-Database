@@ -1,11 +1,14 @@
 import { prisma } from "./prisma";
 import { acceptancesOf, flagsOf, issuesOf } from "./review-validation";
+import { failStaleJobs } from "./extraction-runner";
 export async function reviewData(id: string) {
+  await failStaleJobs(id);
   const doc = await prisma.boqDocument.findUnique({
     where: { id },
     include: {
       project: true,
       stage: true,
+      aiSuggestions: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
       bills: {
         orderBy: { sortOrder: "asc" },
         include: {
@@ -40,6 +43,9 @@ export async function reviewData(id: string) {
     fileType: doc.fileType,
     pageCount: doc.pageCount,
     version: doc.reviewVersion,
+    aiStatus: doc.aiStatus,
+    aiMessage: doc.aiMessage,
+    aiSuggestions: doc.aiSuggestions.map(s => ({ id: s.id, itemId: s.itemId, kind: s.kind, original: s.original, proposed: s.proposed, reason: s.reason, provider: s.providerName, model: s.model, status: s.status })),
     issues: issuesOf(doc.issues),
     acceptedIssues: acceptancesOf(doc.acceptedIssues),
     bills: doc.bills.map((b) => ({
@@ -67,6 +73,7 @@ export async function reviewData(id: string) {
             acceptedFlags: acceptancesOf(i.acceptedFlags),
             checked: !!i.checkedAt,
             aiTouched: i.aiTouched,
+            trade: i.trade,
             rate: i.rates.find((r) => !r.bidderId)?.rate?.toString() ?? null,
             amount:
               i.rates.find((r) => !r.bidderId)?.amount?.toString() ?? null,

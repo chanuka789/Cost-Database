@@ -5,6 +5,8 @@ import { audit } from "./audit";
 import { storage } from "./storage";
 import { extractFile, ExtractorRejected, ExtractorUnavailable } from "./extractor-client";
 import { planIngest } from "./ingest-plan";
+import { runAiReview } from "./ai-service";
+import { columnMappingSchema } from "./ai-validation";
 
 /** An extraction still "running" after this long was interrupted (server restart). */
 export const STALE_JOB_MS = 10 * 60 * 1000;
@@ -25,7 +27,7 @@ export async function runExtraction(documentId: string, jobId: string, userId: s
     await prisma.extractionJob.update({ where: { id: jobId }, data: { status: "RUNNING", startedAt, step: "Reading the BOQ" } });
 
     const file = await storage.get(doc.fileKey);
-    const result = await extractFile(file, doc.fileName);
+    const result = await extractFile(file, doc.fileName, doc.columnMapping ? columnMappingSchema.parse(doc.columnMapping) : null);
 
     await step(jobId, "Saving items");
     const plan = planIngest(result, documentId, doc.currency);
@@ -34,6 +36,7 @@ export async function runExtraction(documentId: string, jobId: string, userId: s
       async (tx) => {
         // A retry replaces whatever an earlier attempt saved.
         await tx.bill.deleteMany({ where: { documentId } });
+        await tx.aiSuggestion.updateMany({ where: { documentId, status: "PENDING" }, data: { status: "SUPERSEDED" } });
         await tx.bill.createMany({ data: plan.bills });
         await tx.section.createMany({ data: plan.sections });
         await tx.mainDescription.createMany({ data: plan.mainDescriptions });
@@ -43,6 +46,8 @@ export async function runExtraction(documentId: string, jobId: string, userId: s
           where: { id: documentId },
           data: {
             status: "REVIEW",
+            aiStatus: doc.aiChoice === "OFF" ? "OFF" : "QUEUED",
+            aiMessage: null,
             reviewVersion: { increment: 1 },
             acceptedIssues: [],
             pageCount: result.stats.pages,
@@ -58,7 +63,7 @@ export async function runExtraction(documentId: string, jobId: string, userId: s
         });
         await tx.extractionJob.update({
           where: { id: jobId },
-          data: { status: "SUCCEEDED", step: "Done", finishedAt: new Date() },
+          data: { status: "SUCCEEDED", step: doc.aiChoice === "OFF" ? "Done" : "Preparing AI suggestions", finishedAt: new Date() },
         });
         await audit(
           {
@@ -73,12 +78,18 @@ export async function runExtraction(documentId: string, jobId: string, userId: s
       },
       { timeout: 60_000 },
     );
+    // AI failures never change a successful extraction to FAILED.
+    if (doc.aiChoice !== "OFF") {
+      try { await runAiReview(documentId, userId); }
+      catch { await prisma.boqDocument.update({ where: { id: documentId }, data: { aiStatus: "SKIPPED", aiMessage: "AI unavailable. Review the rule-based extraction normally." } }).catch(() => {}); }
+      await step(jobId, "Done");
+    }
   } catch (e) {
     const known = e instanceof ExtractorRejected || e instanceof ExtractorUnavailable;
     const code = e instanceof ExtractorRejected ? e.code : e instanceof ExtractorUnavailable ? "UNAVAILABLE" : "INTERNAL";
     const message = known ? (e as Error).message : "Something went wrong while saving the extraction. Try again.";
     if (!known) console.error("Extraction failed", documentId, e);
-    await prisma.boqDocument.update({ where: { id: documentId }, data: { status: "FAILED", failureCode: code, failureMessage: message } });
+    await prisma.boqDocument.update({ where: { id: documentId }, data: { status: "FAILED", failureCode: code, failureMessage: message, aiStatus: "SKIPPED", aiMessage: "AI skipped because extraction failed." } });
     await prisma.extractionJob.update({ where: { id: jobId }, data: { status: "FAILED", error: message, finishedAt: new Date() } });
     await audit({ userId, action: "document.failed", entity: "document", entityId: documentId, details: { code } });
   }
@@ -87,6 +98,7 @@ export async function runExtraction(documentId: string, jobId: string, userId: s
 /** Marks extractions interrupted by a restart as failed, so they can be retried. */
 export async function failStaleJobs(documentId?: string) {
   const cutoff = new Date(Date.now() - STALE_JOB_MS);
+  await prisma.boqDocument.updateMany({ where: { ...(documentId ? { id: documentId } : {}), aiStatus: { in: ["RUNNING", "QUEUED"] }, updatedAt: { lt: cutoff }, status: "REVIEW" }, data: { aiStatus: "PARTIAL", aiMessage: "AI processing was interrupted. Existing suggestions can be reviewed; extraction is complete." } });
   const stale = await prisma.extractionJob.findMany({
     where: { status: { in: ["QUEUED", "RUNNING"] }, createdAt: { lt: cutoff }, ...(documentId ? { documentId } : {}) },
     select: { id: true, documentId: true },
@@ -96,7 +108,7 @@ export async function failStaleJobs(documentId?: string) {
     await prisma.extractionJob.update({ where: { id: job.id }, data: { status: "FAILED", error: message, finishedAt: new Date() } });
     await prisma.boqDocument.updateMany({
       where: { id: job.documentId, status: "PROCESSING" },
-      data: { status: "FAILED", failureCode: "INTERRUPTED", failureMessage: message },
+      data: { status: "FAILED", failureCode: "INTERRUPTED", failureMessage: message, aiStatus: "SKIPPED", aiMessage: "AI skipped because extraction was interrupted." },
     });
   }
 }

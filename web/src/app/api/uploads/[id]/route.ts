@@ -43,6 +43,7 @@ export async function DELETE(req: Request, { params }: Ctx) {
 
   try { await prisma.$transaction(async (tx) => {
     const current = await lockDocument(tx, id);
+    if (current.aiStatus === "RUNNING" || current.aiStatus === "QUEUED") throw new ReviewError("Wait for AI processing to finish before deleting.");
     if (current.status === "PUBLISHED" || current.status === "PROCESSING") throw new ReviewError("This BOQ can no longer be deleted.");
     await tx.boqDocument.delete({ where: { id } });
     await audit({ userId: admin.id, action: "document.deleted", entity: "document", entityId: id, details: { title: doc.title } }, tx);

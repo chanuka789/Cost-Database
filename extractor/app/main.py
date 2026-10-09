@@ -17,11 +17,13 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, File, Request, UploadFile
+from fastapi import FastAPI, File, Form, Request, UploadFile
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from fastapi.responses import JSONResponse
 
 from .extract import VERSION, extract
 from .models import Cover
+from .ai import AiRequest, complete
 from .pdf_reader import ExtractError, inspect_pdf
 
 log = logging.getLogger("extractor")
@@ -59,6 +61,11 @@ def info():
     return {"formats": list(TYPES.values()), "version": VERSION, "max_mb": MAX_BYTES // (1024 * 1024)}
 
 
+@app.post("/v1/ai/complete")
+async def ai_complete(request: AiRequest):
+    return await complete(request)
+
+
 def _save_upload(file: UploadFile) -> tuple[Path, str]:
     suffix = Path(file.filename or "").suffix.lower()
     if suffix == ".xls":
@@ -78,14 +85,41 @@ def _save_upload(file: UploadFile) -> tuple[Path, str]:
     return Path(tmp.name), TYPES[suffix]
 
 
+class ColumnMapping(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    reference: str | None = Field(max_length=150)
+    description: str = Field(min_length=1, max_length=150)
+    quantity: str = Field(min_length=1, max_length=150)
+    unit: str = Field(min_length=1, max_length=150)
+    rate: str | None = Field(max_length=150)
+    amount: str | None = Field(max_length=150)
+
+    @model_validator(mode="after")
+    def unique_columns(self):
+        fields = [v for v in self.model_dump().values() if v is not None]
+        if len(set(fields)) != len(fields):
+            raise ValueError("Duplicate source columns")
+        return self
+
+
+def parse_mapping(value: str | None):
+    if not value:
+        return None
+    try:
+        return ColumnMapping.model_validate_json(value).model_dump()
+    except ValueError:
+        raise ExtractError("INVALID_MAPPING", "Check the reviewed source column mapping.")
+
+
 @app.post("/v1/inspect")
-def inspect(file: UploadFile = File(...)):
+def inspect(file: UploadFile = File(...), column_mapping: str | None = Form(None)):
+    mapping = parse_mapping(column_mapping)
     path, file_type = _save_upload(file)
     try:
         if file_type == "pdf":
             cover, pages = inspect_pdf(str(path))
         else:
-            result = extract(str(path), "xlsx")
+            result = extract(str(path), "xlsx", mapping)
             cover, pages = result.cover, result.stats.pages
         return {"file_type": file_type, "pages": pages, "cover": Cover.model_validate(cover).model_dump()}
     finally:
@@ -93,10 +127,11 @@ def inspect(file: UploadFile = File(...)):
 
 
 @app.post("/v1/extract")
-def run_extract(file: UploadFile = File(...)):
+def run_extract(file: UploadFile = File(...), column_mapping: str | None = Form(None)):
+    mapping = parse_mapping(column_mapping)
     path, file_type = _save_upload(file)
     try:
-        result = extract(str(path), file_type)
+        result = extract(str(path), file_type, mapping)
         log.info("extracted %s: %s items, %s issues", file.filename, result.stats.items, len(result.issues))
         return JSONResponse(content=result.model_dump(mode="json"))
     except ExtractError:

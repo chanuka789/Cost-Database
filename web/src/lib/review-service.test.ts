@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 import { prisma } from "./prisma";
 import { applyReview } from "./review-service";
 import { flagKey, type ReviewAction } from "./review-validation";

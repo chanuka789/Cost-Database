@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/session";
 import { UploadForm, type UploadFormData } from "./upload-form";
+import { aiOptions } from "@/lib/ai-service";
 
 export const metadata: Metadata = { title: "Upload BOQ" };
 
@@ -35,6 +36,7 @@ export default async function NewUploadPage({ searchParams }: { searchParams: Pr
   ]);
 
   const data: UploadFormData = {
+    ai: await aiOptions(),
     projects: projects.map((p) => ({
       id: p.id,
       name: p.name,
