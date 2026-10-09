@@ -1,0 +1,19 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Client BOQ files and extraction outputs (confidential)
+*.pdf
+*.xlsx
+*.xls
+*.csv
+uploads/
+
+# Dependencies and builds
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/

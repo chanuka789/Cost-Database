@@ -1,0 +1,158 @@
+// QSGS Cost Database — see docs/BUILD_PLAN.md section 4.
+// Phase 1 tables: users, auth tokens, lookup lists, audit log, settings.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  DISABLED
+}
+
+enum ThemePreference {
+  LIGHT
+  DARK
+}
+
+enum AuthTokenType {
+  INVITE
+  RESET
+}
+
+enum Currency {
+  SAR
+  AED
+  QAR
+}
+
+model User {
+  id               String          @id @default(cuid())
+  name             String
+  email            String          @unique
+  passwordHash     String?
+  role             Role            @default(USER)
+  status           UserStatus      @default(INVITED)
+  theme            ThemePreference @default(LIGHT)
+  /// Bumped on password change, disable or role change; tokens carrying an
+  /// older value are rejected, which signs the user out everywhere.
+  sessionVersion   Int             @default(0)
+  failedLoginCount Int             @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  authTokens AuthToken[] @relation("TokenOwner")
+  auditLogs  AuditLog[]
+
+  @@map("users")
+}
+
+/// Single-use invite and password-reset links. Only a SHA-256 hash of the
+/// token is stored; the raw token exists only in the link itself.
+model AuthToken {
+  id          String        @id @default(cuid())
+  userId      String
+  type        AuthTokenType
+  tokenHash   String        @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdById String?
+  createdAt   DateTime      @default(now())
+
+  user User @relation("TokenOwner", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("auth_tokens")
+}
+
+model Country {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  /// ISO 3166-1 alpha-2, e.g. AE, SA, QA.
+  code      String   @unique
+  currency  Currency
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cities City[]
+
+  @@map("countries")
+}
+
+model City {
+  id        String   @id @default(cuid())
+  countryId String
+  name      String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  country Country @relation(fields: [countryId], references: [id], onDelete: Restrict)
+
+  @@unique([countryId, name])
+  @@map("cities")
+}
+
+model BuildingType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("building_types")
+}
+
+model Stage {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  /// Project order: Concept → SD → DD → IFC → Tender.
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("stages")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
+
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}

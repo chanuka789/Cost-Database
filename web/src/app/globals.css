@@ -1,0 +1,464 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* QSGS Cost Database — design tokens. Full spec: docs/DESIGN_SYSTEM.md.
+   Sizes, radii and motion follow the Weekly Allocation app; colours are QSGS. */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-qs-canvas: var(--qs-canvas);
+  --color-qs-panel: var(--qs-panel);
+  --color-qs-raised: var(--qs-raised);
+  --color-qs-hover: var(--qs-hover);
+  --color-qs-pressed: var(--qs-pressed);
+  --color-qs-border: var(--qs-border);
+  --color-qs-border-strong: var(--qs-border-strong);
+  --color-qs-text: var(--qs-text);
+  --color-qs-text-secondary: var(--qs-text-secondary);
+  --color-qs-text-muted: var(--qs-text-muted);
+  --color-qs-text-faint: var(--qs-text-faint);
+  --color-qs-topbar: var(--qs-topbar);
+  --color-qs-topbar-border: var(--qs-topbar-border);
+  --color-qs-brand: var(--qs-brand);
+  --color-qs-brand-hover: var(--qs-brand-hover);
+  --color-qs-brand-tint: var(--qs-brand-tint);
+  --color-qs-brand-text: var(--qs-brand-text);
+  --color-qs-success: var(--qs-success);
+  --color-qs-success-bg: var(--qs-success-bg);
+  --color-qs-warning: var(--qs-warning);
+  --color-qs-warning-bg: var(--qs-warning-bg);
+  --color-qs-danger: var(--qs-danger);
+  --color-qs-danger-bg: var(--qs-danger-bg);
+  --color-qs-info: var(--qs-info);
+  --color-qs-info-bg: var(--qs-info-bg);
+  --color-qs-highlight: var(--qs-highlight);
+
+  --shadow-qs-sm: var(--qs-shadow-sm);
+  --shadow-qs-elevated: var(--qs-shadow-elevated);
+  --shadow-qs-popup: var(--qs-shadow-popup);
+
+  /* Tailwind radius utilities mapped onto the radius scale, so `rounded-md`
+     on a control lands on the same value the design system picks. */
+  --radius-xs: var(--radius-chip);
+  --radius-sm: var(--radius-item);
+  --radius-md: var(--radius-control);
+  --radius-lg: var(--radius-surface);
+  --radius-xl: var(--radius-dialog);
+
+  /* Softened weights — Funnel Sans reads heavy at Tailwind's defaults. */
+  --font-weight-semibold: 550;
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 650;
+  --font-weight-black: 700;
+
+  --font-sans: var(--font-funnel-sans), "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+:root,
+.dark .force-light {
+  /* Sign-in pages stay light even for users who chose dark. */
+  color-scheme: light;
+
+  --qs-canvas: #f2f2f2;
+  --qs-panel: #ffffff;
+  --qs-raised: #fafafa;
+  --qs-hover: #efefef;
+  --qs-pressed: #e3e3e3;
+  --qs-border: #e3e3e3;
+  --qs-border-strong: #c7c7c7;
+  --qs-text: #262626;
+  --qs-text-secondary: #464646;
+  --qs-text-muted: #5d5d5d;
+  --qs-text-faint: #909090;
+  --qs-topbar: #ffffff;
+  --qs-topbar-border: #e3e3e3;
+
+  --qs-brand: #0a5083;
+  --qs-brand-rgb: 10, 80, 131;
+  --qs-brand-hover: #083f68;
+  --qs-brand-tint: #e7eff6;
+  --qs-brand-text: #0a5083;
+
+  --qs-success: #2b7a30;
+  --qs-success-bg: #e7f3e8;
+  --qs-warning: #9a5e08;
+  --qs-warning-bg: #fbf1e1;
+  --qs-danger: #b42318;
+  --qs-danger-rgb: 180, 35, 24;
+  --qs-danger-bg: #fdecea;
+  --qs-info: #475467;
+  --qs-info-bg: #eef1f4;
+  --qs-highlight: #fff1a8;
+
+  --qs-shadow-sm: 0 1px 2px rgba(16, 18, 22, 0.06);
+  --qs-shadow-elevated: 0 2px 6px rgba(16, 18, 22, 0.06), 0 10px 24px rgba(16, 18, 22, 0.06);
+  --qs-shadow-popup: 0 16px 40px rgba(16, 18, 22, 0.18), 0 2px 8px rgba(16, 18, 22, 0.08);
+  --qs-backdrop: rgba(24, 26, 30, 0.38);
+  --qs-focus-ring: 0 0 0 3px rgba(var(--qs-brand-rgb), 0.18);
+  --qs-danger-ring: 0 0 0 3px rgba(var(--qs-danger-rgb), 0.18);
+
+  /* Toasts and tooltips are dark grey with light text in both themes. */
+  --qs-toast-bg: #2e3035;
+  --qs-toast-border: #3a3d43;
+  --qs-toast-text: #e6e8eb;
+  --qs-toast-muted: #9ba1a8;
+
+  /* Corner radius — the one place to reshape the product. */
+  --radius-dialog: 14px;  /* dialogs, slide-over sheets          */
+  --radius-surface: 10px; /* cards, panels, sidebar, page shells */
+  --radius-menu: 10px;    /* dropdowns, popovers, menus          */
+  --radius-control: 8px;  /* buttons, inputs, selects, nav items */
+  --radius-item: 6px;     /* rows inside menus, badges           */
+  --radius-chip: 4px;     /* checkboxes, small tags              */
+  --radius-pill: 9999px;  /* avatars, dots, toggles              */
+  --radius-grid: 0px;     /* table cells                         */
+
+  --duration-fast: 120ms;
+  --duration-normal: 160ms;
+  --duration-slow: 180ms;
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --qs-canvas: #1f2023;
+  --qs-panel: #26282c;
+  --qs-raised: #2e3035;
+  --qs-hover: #33363b;
+  --qs-pressed: #3a3d43;
+  --qs-border: #383b40;
+  --qs-border-strong: #4a4e55;
+  --qs-text: #e6e8eb;
+  --qs-text-secondary: #c9cdd2;
+  --qs-text-muted: #9ba1a8;
+  --qs-text-faint: #777d85;
+  --qs-topbar: #18191b;
+  --qs-topbar-border: #2a2c30;
+
+  --qs-brand: #2f77b0;
+  --qs-brand-rgb: 47, 119, 176;
+  --qs-brand-hover: #276a9e;
+  --qs-brand-tint: #1e2c38;
+  --qs-brand-text: #8dbde3;
+
+  --qs-success: #72c176;
+  --qs-success-bg: #223226;
+  --qs-warning: #d9a441;
+  --qs-warning-bg: #3a3222;
+  --qs-danger: #f97066;
+  --qs-danger-rgb: 249, 112, 102;
+  --qs-danger-bg: #3a2328;
+  --qs-info: #b3bcc8;
+  --qs-info-bg: #2b2f36;
+  --qs-highlight: #5c5220;
+
+  --qs-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --qs-shadow-elevated: 0 2px 6px rgba(0, 0, 0, 0.25), 0 10px 24px rgba(0, 0, 0, 0.25);
+  --qs-shadow-popup: 0 18px 48px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+  --qs-backdrop: rgba(0, 0, 0, 0.55);
+  --qs-focus-ring: 0 0 0 3px rgba(var(--qs-brand-rgb), 0.35);
+  --qs-danger-ring: 0 0 0 3px rgba(var(--qs-danger-rgb), 0.3);
+  --qs-toast-bg: #3a3d43;
+  --qs-toast-border: #4a4e55;
+}
+
+/* Hides first-paint flash, then fades in (120ms after 40ms). */
+@keyframes page-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@layer base {
+  html {
+    animation: page-reveal 120ms ease-out both;
+    animation-delay: 40ms;
+  }
+  body {
+    background: var(--qs-canvas);
+    color: var(--qs-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  *,
+  ::before,
+  ::after {
+    border-color: var(--qs-border);
+  }
+  ::selection {
+    background: rgba(var(--qs-brand-rgb), 0.18);
+  }
+  :focus-visible:not(input):not(textarea):not(select) {
+    outline: none;
+    box-shadow: var(--qs-focus-ring);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* ── Components ──────────────────────────────────────────────────────────── */
+
+/* Card / panel: 10px radius, border, small shadow; elevated on hover. */
+.qs-card {
+  border-radius: var(--radius-surface);
+  border: 1px solid var(--qs-border);
+  background: var(--qs-panel);
+  box-shadow: var(--qs-shadow-sm);
+  transition: box-shadow var(--duration-normal) var(--ease-smooth), border-color var(--duration-normal) var(--ease-smooth);
+}
+.qs-card-hover:hover {
+  box-shadow: var(--qs-shadow-elevated);
+}
+
+/* Badge: 20px, 11px/600, 6px radius, tinted by tone. */
+.qs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--radius-item);
+  background: var(--qs-hover);
+  color: var(--qs-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.qs-badge[data-tone="brand"] { background: var(--qs-brand-tint); color: var(--qs-brand-text); }
+.qs-badge[data-tone="success"] { background: var(--qs-success-bg); color: var(--qs-success); }
+.qs-badge[data-tone="warning"] { background: var(--qs-warning-bg); color: var(--qs-warning); }
+.qs-badge[data-tone="danger"] { background: var(--qs-danger-bg); color: var(--qs-danger); }
+.qs-badge[data-tone="info"] { background: var(--qs-info-bg); color: var(--qs-info); }
+
+/* Sidebar nav item: 36px, 13.5px/500, 8px radius; active = brand tint + bar. */
+.qs-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  color: var(--qs-text-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease;
+}
+.qs-nav-item:hover {
+  background: var(--qs-hover);
+  color: var(--qs-text);
+}
+.qs-nav-item[aria-current="page"] {
+  background: var(--qs-brand-tint);
+  color: var(--qs-brand-text);
+  font-weight: 550;
+}
+.qs-nav-item[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--qs-brand);
+}
+/* Collapsed sidebar: icon rows name themselves in a dark tooltip. */
+[data-sidebar-collapsed="true"] .qs-nav-item[data-tooltip]:is(:hover, :focus-visible)::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  z-index: 60;
+  transform: translateY(-50%);
+  padding: 5px 9px;
+  border-radius: var(--radius-item);
+  background: var(--qs-toast-bg);
+  color: var(--qs-toast-text);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: var(--qs-shadow-elevated);
+  pointer-events: none;
+}
+
+/* Floating menu panel: panel fill, border, popup shadow, 10px radius. */
+.qs-menu {
+  border-radius: var(--radius-menu);
+  border: 1px solid var(--qs-border);
+  background: var(--qs-panel);
+  color: var(--qs-text);
+  box-shadow: var(--qs-shadow-popup);
+}
+.qs-menu-label {
+  padding: 8px 10px 4px;
+  color: var(--qs-text-faint);
+  font-size: 11px;
+  font-weight: 550;
+}
+.qs-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-item);
+  color: var(--qs-text);
+  font-size: 13px;
+  text-align: left;
+  outline: none;
+  transition: background-color var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+.qs-menu-item:hover,
+.qs-menu-item:focus-visible,
+.qs-menu-item[data-highlighted] {
+  background: var(--qs-hover);
+}
+.qs-menu-item.is-selected {
+  background: var(--qs-brand-tint);
+  color: var(--qs-brand-text);
+}
+.qs-menu-item[data-tone="danger"] {
+  color: var(--qs-danger);
+}
+
+/* Segmented control: 3px padded track, 9px radius; items 28px. */
+.qs-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid var(--qs-border);
+  background: var(--qs-raised);
+}
+.qs-segmented-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-item);
+  background: transparent;
+  color: var(--qs-text-muted);
+  font-size: 13px;
+  font-weight: 550;
+  white-space: nowrap;
+  transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+.qs-segmented-item:hover {
+  color: var(--qs-text);
+}
+.qs-segmented-item:is([aria-selected="true"], [aria-checked="true"], [aria-pressed="true"], [data-active]) {
+  background: var(--qs-panel);
+  color: var(--qs-text);
+  box-shadow: var(--qs-shadow-sm);
+}
+
+/* Data table: square cells inside a card, 36px sticky header, 40px rows. */
+.qs-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.qs-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--qs-border);
+  background: var(--qs-raised);
+  color: var(--qs-text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.qs-table td {
+  height: 40px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--qs-border);
+  vertical-align: middle;
+}
+.qs-table tbody tr {
+  transition: background-color var(--duration-fast) ease;
+}
+.qs-table tbody tr:hover {
+  background: var(--qs-hover);
+}
+.qs-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.qs-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Skeleton loading block. */
+.qs-skeleton {
+  border-radius: var(--radius-item);
+  background: var(--qs-hover);
+  animation: qs-pulse 1.4s ease-in-out infinite;
+}
+@keyframes qs-pulse {
+  50% { opacity: 0.55; }
+}
+
+/* Logo: show the variant that suits the theme. */
+.brand-dark-only { display: none; }
+.dark .brand-light-only { display: none; }
+.dark .brand-dark-only { display: block; }
+
+/* Toasts (sonner): dark grey in both themes. */
+.toaster .qs-toast {
+  border: 1px solid var(--qs-toast-border) !important;
+  border-radius: var(--radius-surface) !important;
+  background: var(--qs-toast-bg) !important;
+  color: var(--qs-toast-text) !important;
+  box-shadow: var(--qs-shadow-elevated) !important;
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+.toaster .qs-toast [data-description] {
+  color: var(--qs-toast-muted) !important;
+}
+.qs-toast-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--qs-toast-muted);
+}
+.qs-toast-dot[data-tone="success"] { background: #72c176; }
+.qs-toast-dot[data-tone="warning"] { background: #d9a441; }
+.qs-toast-dot[data-tone="error"] { background: #f97066; }
+
+/* Touch screens: larger targets. */
+@media (pointer: coarse) {
+  .qs-nav-item { min-height: 44px; }
+  .qs-menu-item { min-height: 40px; }
+  .qs-segmented-item { min-height: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { animation: none; }
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
