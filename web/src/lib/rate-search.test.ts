@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   convertRate,
   escapeLike,
+  hasSearchCriteria,
   exportSchema,
   parseSearch,
   searchParams,
@@ -63,5 +64,19 @@ describe("rate search input and currency", () => {
     expect(query.text).toContain("d.status='PUBLISHED'");
     expect(query.text).not.toContain("DROP");
     expect(query.values).toContain("';DROP");
+  });
+});
+
+describe("what counts as a search", () => {
+  const parse = (q: string) => parseSearch(new URLSearchParams(q));
+  it("is empty with no text and no filters, whatever the currency or page", () => {
+    expect(hasSearchCriteria(parse(""))).toBe(false);
+    expect(hasSearchCriteria(parse("currency=QAR&page=3"))).toBe(false);
+    expect(hasSearchCriteria(parse("q=%20%20"))).toBe(false);
+  });
+  it("counts typed text or any single filter", () => {
+    for (const q of ["q=paver", "projects=p1", "stages=s1", "country=c1", "unit=m2", "rateType=PTE", "boqFrom=2026-01-01"]) {
+      expect(hasSearchCriteria(parse(q))).toBe(true);
+    }
   });
 });

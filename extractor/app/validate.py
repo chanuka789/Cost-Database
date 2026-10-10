@@ -20,23 +20,19 @@ def _flag(item: Item, code: str, severity: str, message: str) -> None:
 
 
 def check_items(bills: list[Bill], *, check_page_refs: bool = True) -> None:
+    """Item references (A, B, C…) only number items on a printed page and
+    restart on every page — and sometimes mid-page at a new section — so the
+    same letter appearing again is normal and is never flagged. The only
+    reference check is a skipped letter inside a run (A, B, D), which can mean
+    an item was missed. Excel records a sheet, not a printed page, so even
+    that check is skipped there."""
     for bill in bills:
-        seen_on_page: dict[tuple[int, str], int] = {}
         previous: Item | None = None
         for section in bill.sections:
             for md in section.main_descriptions:
                 for item in md.items:
                     _check_item(item)
-                    # Excel records a sheet number, not a printed page. Refs
-                    # legitimately restart throughout a bill sheet, so PDF's
-                    # per-page duplicate/sequence checks don't apply there.
-                    if not check_page_refs:
-                        continue
-                    key = (item.page, item.ref.upper())
-                    seen_on_page[key] = seen_on_page.get(key, 0) + 1
-                    if seen_on_page[key] > 1:
-                        _flag(item, "DUPLICATE_REF", "warning", f"Item {item.ref} appears more than once on page {item.page}.")
-                    if previous is not None and previous.page == item.page:
+                    if check_page_refs and previous is not None and previous.page == item.page:
                         _check_sequence(previous, item)
                     previous = item
 
@@ -68,11 +64,10 @@ def _check_sequence(prev: Item, item: Item) -> None:
     a, b = prev.ref.upper(), item.ref.upper()
     if a in _LETTERS and b in _LETTERS:
         gap = _LETTERS.index(b) - _LETTERS.index(a)
+        # Only a forward skip is suspicious; going back (a restart) is normal.
         if gap > 1:
             missing = ", ".join(_LETTERS[_LETTERS.index(a) + 1 : _LETTERS.index(b)])
             _flag(item, "REF_GAP", "warning", f"Item {missing} seems to be missing before {item.ref} on page {item.page}.")
-        elif gap <= 0 and b != "A":
-            _flag(item, "REF_ORDER", "warning", f"Item {item.ref} comes after {prev.ref} on page {item.page}.")
 
 
 def check_page_totals(bills: list[Bill], totals: list[PageTotal]) -> list[Issue]:

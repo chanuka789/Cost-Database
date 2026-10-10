@@ -55,7 +55,7 @@ export function ExtractionProgress({ id, initialStep }: { id: string; initialSte
   );
 }
 
-export function UploadActions({ id, status }: { id: string; status: string }) {
+export function UploadActions({ id, status, rateCount = 0 }: { id: string; status: string; rateCount?: number }) {
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -83,7 +83,7 @@ export function UploadActions({ id, status }: { id: string; status: string }) {
           Extract again
         </Button>
       ) : null}
-      {status === "FAILED" || status === "REVIEW" ? (
+      {status === "FAILED" || status === "REVIEW" || status === "PUBLISHED" ? (
         <Button variant="destructive" onClick={() => setConfirmDelete(true)}>
           <Trash2 aria-hidden />
           Delete
@@ -92,14 +92,18 @@ export function UploadActions({ id, status }: { id: string; status: string }) {
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Delete this upload?"
-        description="The file and everything extracted from it are removed. The project stays. This can't be undone."
-        confirmLabel="Delete upload"
+        title={status === "PUBLISHED" ? "Delete this published BOQ?" : "Delete this upload?"}
+        description={
+          status === "PUBLISHED"
+            ? `Its ${rateCount.toLocaleString("en-US")} published rate${rateCount === 1 ? "" : "s"} disappear from rate search straight away, together with the file, items and review history. The project stays. This can't be undone.`
+            : "The file and everything extracted from it are removed. The project stays. This can't be undone."
+        }
+        confirmLabel={status === "PUBLISHED" ? "Delete published BOQ" : "Delete upload"}
         tone="danger"
         onConfirm={async () => {
           const res = await fetch(`/api/uploads/${id}`, { method: "DELETE" });
           if (!res.ok) return (await res.json().catch(() => null))?.error ?? "Couldn't delete the upload.";
-          toast.success("Upload deleted");
+          toast.success(status === "PUBLISHED" ? "Published BOQ deleted" : "Upload deleted");
           router.push("/uploads");
           router.refresh();
           return null;

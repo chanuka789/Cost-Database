@@ -30,7 +30,11 @@ export async function GET(req: Request, { params }: Ctx) {
   return NextResponse.json({ ...doc, job: doc.jobs[0] ?? null, jobs: undefined });
 }
 
-/** Deletes an upload that isn't published, with everything extracted from it. */
+/**
+ * Deletes a BOQ with everything extracted from it — bills, items, rates, review
+ * and AI suggestions — and its stored file. Published BOQs can be deleted too:
+ * their rates leave rate search immediately. The project stays.
+ */
 export async function DELETE(req: Request, { params }: Ctx) {
   const admin = await guardAdmin(req);
   if (admin instanceof NextResponse) return admin;
@@ -38,15 +42,27 @@ export async function DELETE(req: Request, { params }: Ctx) {
 
   const doc = await prisma.boqDocument.findUnique({ where: { id }, select: { status: true, fileKey: true, title: true, projectId: true } });
   if (!doc) return jsonError("Upload not found.", 404);
-  if (doc.status === "PUBLISHED") return jsonError("Published BOQs can't be deleted here.", 409);
   if (doc.status === "PROCESSING") return jsonError("Wait for the extraction to finish before deleting.", 409);
 
   try { await prisma.$transaction(async (tx) => {
     const current = await lockDocument(tx, id);
     if (current.aiStatus === "RUNNING" || current.aiStatus === "QUEUED") throw new ReviewError("Wait for AI processing to finish before deleting.");
-    if (current.status === "PUBLISHED" || current.status === "PROCESSING") throw new ReviewError("This BOQ can no longer be deleted.");
+    if (current.status === "PROCESSING") throw new ReviewError("Wait for the extraction to finish before deleting.");
+    const [items, rates] = await Promise.all([
+      tx.boqItem.count({ where: { documentId: id } }),
+      tx.rate.count({ where: { item: { documentId: id } } }),
+    ]);
     await tx.boqDocument.delete({ where: { id } });
-    await audit({ userId: admin.id, action: "document.deleted", entity: "document", entityId: id, details: { title: doc.title } }, tx);
+    await audit(
+      {
+        userId: admin.id,
+        action: "document.deleted",
+        entity: "document",
+        entityId: id,
+        details: { title: doc.title, wasPublished: current.status === "PUBLISHED", items, rates },
+      },
+      tx,
+    );
   }); } catch (e) { if (e instanceof ReviewError) return jsonError(e.message, e.status); throw e; }
   await storage.remove(doc.fileKey).catch((e) => console.error("Couldn't remove stored file", doc.fileKey, e));
   return NextResponse.json({ ok: true });

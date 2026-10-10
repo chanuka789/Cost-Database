@@ -94,3 +94,14 @@ it("returns 404 for inaccessible detail without exposing metadata", async () => 
     ).status,
   ).toBe(404);
 });
+it("lists nothing until the user searches or chooses a filter", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(actor);
+  vi.mocked(searchRates).mockResolvedValue({ rows: [], total: 0, projects: 0, numericRates: 0, units: [], stats: null, page: 1, pageSize: 25, elapsedMs: 1 });
+  for (const url of ["http://localhost/api/rates", "http://localhost/api/rates?currency=AED", "http://localhost/api/rates?q=%20%20"]) {
+    expect((await search(new Request(url))).status).toBe(400);
+  }
+  expect(searchRates).not.toHaveBeenCalled();
+  expect((await search(new Request("http://localhost/api/rates?q=paver"))).status).toBe(200);
+  expect((await search(new Request("http://localhost/api/rates?stages=s1"))).status).toBe(200);
+  expect(searchRates).toHaveBeenCalledTimes(2);
+});

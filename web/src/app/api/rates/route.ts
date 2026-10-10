@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/session";
-import { parseSearch } from "@/lib/rate-search";
+import { hasSearchCriteria, parseSearch } from "@/lib/rate-search";
 import { searchRates } from "@/lib/rate-search-service";
 export async function GET(request: Request) {
   if (!(await getCurrentUser()))
@@ -16,6 +16,11 @@ export async function GET(request: Request) {
       { status: 400 },
     );
   }
+  if (!hasSearchCriteria(filters))
+    return Response.json(
+      { error: "Type an item or project, or choose a filter, to search." },
+      { status: 400 },
+    );
   return Response.json(await searchRates(filters), {
     headers: { "Cache-Control": "private, no-store" },
   });

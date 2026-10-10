@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/session";
-import { parseSearch } from "@/lib/rate-search";
-import { searchOptions, searchRates } from "@/lib/rate-search-service";
+import { hasSearchCriteria, parseSearch } from "@/lib/rate-search";
+import { publishedSummary, searchOptions, searchRates } from "@/lib/rate-search-service";
 import { RateSearchWorkspace } from "@/components/rates/search-workspace";
 
 export const metadata: Metadata = { title: "Rate search" };
@@ -26,9 +26,11 @@ export default async function RateSearchPage({
     filters = parseSearch(new URLSearchParams());
     error = "Some URL filters were invalid and have been reset.";
   }
-  const [options, result] = await Promise.all([
+  // Nothing is listed until the user searches or picks a filter.
+  const [options, result, summary] = await Promise.all([
     searchOptions(),
-    searchRates(filters),
+    hasSearchCriteria(filters) ? searchRates(filters) : null,
+    publishedSummary(),
   ]);
   return (
     <RateSearchWorkspace
@@ -36,6 +38,7 @@ export default async function RateSearchPage({
       admin={user.role === "ADMIN"}
       initialFilters={filters}
       initialResult={result}
+      summary={summary}
       options={options}
       initialError={error}
     />

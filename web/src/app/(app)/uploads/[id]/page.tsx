@@ -98,7 +98,7 @@ export default async function UploadPage({ params }: { params: Promise<{ id: str
             {doc.project.city.name}, {doc.project.country.name} · {doc.project.buildingType.name} · uploaded by {doc.uploadedBy.name} on {formatDateTime(doc.createdAt)} · {doc.fileName}
           </p>
         </div>
-        <UploadActions id={doc.id} status={doc.status} />
+        <UploadActions id={doc.id} status={doc.status} rateCount={doc.status === "PUBLISHED" ? await prisma.rate.count({ where: { item: { documentId: doc.id } } }) : 0} />
       </header>
 
       {doc.status === "PROCESSING" ? <ExtractionProgress id={doc.id} initialStep={doc.jobs[0]?.step ?? "Waiting to start"} /> : null}

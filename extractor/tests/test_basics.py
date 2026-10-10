@@ -91,3 +91,23 @@ def test_new_bill_resets_heading():
     )
     assert [b.bill_no for b in bills] == ["01", "02"]
     assert bills[1].sections[0].heading is None
+
+
+def test_item_letters_may_restart_on_a_page_but_skips_are_flagged():
+    from app.validate import check_items
+
+    bills = build(
+        [
+            BillStart("01", "GENERAL"),
+            TextBlock([("Performance Security", True)], 1),
+            ItemRow("A", ["Arrange security"], 1, "1", "item"),
+            TextBlock([("Insurances", True)], 1),
+            ItemRow("A", ["Contractor's All Risks"], 1, "1", "item"),  # restarts mid-page: normal
+            ItemRow("B", ["Third-party liability"], 1, "1", "item"),
+            ItemRow("D", ["Plant insurance"], 1, "1", "item"),  # C skipped: suspicious
+        ]
+    )
+    check_items(bills)
+    flags = {(i.ref, i.description): {f.code for f in i.flags} for _, _, i in _items(bills)}
+    assert not any(code in {"DUPLICATE_REF", "REF_ORDER"} for codes in flags.values() for code in codes)
+    assert flags[("D", "Plant insurance")] == {"REF_GAP"}

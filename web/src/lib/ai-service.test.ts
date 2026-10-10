@@ -113,7 +113,14 @@ describe.skipIf(!testUrl)("AI transaction and fallback integration", () => {
     expect(results.filter(r => r.status === "fulfilled")).toHaveLength(1);
     expect(results.filter(r => r.status === "rejected")).toHaveLength(1);
   });
-  it("resolves default and snapshots recipients at upload time", async () => { const result = await uploadAiSelection("DEFAULT", true); expect(result.aiChoice).toBe(providers[0]); expect(result.aiRecipients).toHaveLength(2); });
+  it("resolves default and snapshots recipients at upload time", async () => {
+    const result = await uploadAiSelection("DEFAULT", true);
+    expect(result.aiChoice).toBe(providers[0]);
+    // Other enabled providers already in the database may also be fallbacks; only check ours.
+    const ids = (result.aiRecipients as { id: string }[]).map((r) => r.id);
+    expect(ids[0]).toBe(providers[0]);
+    expect(ids).toEqual(expect.arrayContaining(providers));
+  });
   it("rejects stale proposals after a manual edit", async () => {
     await runAiReview(did, uid);
     const s = await prisma.aiSuggestion.findFirstOrThrow({ where: { documentId: did, kind: "TEXT" } });

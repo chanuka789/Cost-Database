@@ -35,6 +35,7 @@ import {
 import { PageHeader, EmptyState } from "@/components/layout/page-header";
 import {
   currencies,
+  hasSearchCriteria,
   parseSearch,
   searchParams,
   searchSchema,
@@ -45,6 +46,60 @@ import {
   type SearchResult,
 } from "@/lib/rate-search";
 import { RateDetailSheet, money } from "./rate-detail";
+
+/** Shown before the first search: what can be searched, and how. */
+function StartPanel({
+  summary,
+  admin,
+  loading,
+  focus,
+  openFilters,
+}: {
+  summary: { rates: number; projects: number };
+  admin: boolean;
+  loading: boolean;
+  focus: () => void;
+  openFilters: () => void;
+}) {
+  if (!summary.rates)
+    return (
+      <EmptyState
+        icon={Search}
+        title="No published rates yet"
+        description={admin ? "Review and publish a BOQ to make its rates searchable." : "Rates will appear when an admin publishes a BOQ."}
+        action={
+          admin ? (
+            <Button variant="outline" asChild>
+              <Link href="/uploads">Review uploads</Link>
+            </Button>
+          ) : undefined
+        }
+      />
+    );
+  return (
+    <div aria-busy={loading} className="qs-card flex flex-col items-center px-6 py-14 text-center">
+      <div className="flex size-11 items-center justify-center rounded-lg bg-qs-hover text-qs-text-muted">
+        <Search className="size-5" aria-hidden />
+      </div>
+      <h2 className="mt-4 text-[15px] font-[600]">Search for a rate</h2>
+      <p className="mt-1.5 max-w-md text-[13px] leading-6 text-qs-text-muted">
+        {summary.rates.toLocaleString("en-US")} published rates from {summary.projects.toLocaleString("en-US")}{" "}
+        {summary.projects === 1 ? "project" : "projects"} are ready. Type an item, project name or number — or choose filters such as location,
+        building type or stage.
+      </p>
+      <div className="mt-5 flex flex-wrap justify-center gap-2">
+        <Button variant="outline" onClick={focus}>
+          <Search aria-hidden />
+          Type a search
+        </Button>
+        <Button variant="outline" onClick={openFilters}>
+          <SlidersHorizontal aria-hidden />
+          Choose filters
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 const subscribe = (callback: () => void) => {
   window.addEventListener("qsgs-basket", callback);
@@ -83,14 +138,17 @@ function useBasket(userId: string) {
       return [];
     }
   }, [snapshot]);
-  const save = (values: string[]) => {
-    try {
-      sessionStorage.setItem(key, JSON.stringify(values));
-      window.dispatchEvent(new Event("qsgs-basket"));
-    } catch {
-      throw new Error("Your browser is blocking basket storage.");
-    }
-  };
+  const save = useCallback(
+    (values: string[]) => {
+      try {
+        sessionStorage.setItem(key, JSON.stringify(values));
+        window.dispatchEvent(new Event("qsgs-basket"));
+      } catch {
+        throw new Error("Your browser is blocking basket storage.");
+      }
+    },
+    [key],
+  );
   return { ids, save };
 }
 function FilterSelect({
@@ -199,12 +257,17 @@ function BasketContent({
           throw new Error(data.error ?? "Could not load basket.");
         return data.rows as RateRow[];
       })
-      .then(setRows)
+      .then((loaded) => {
+        setRows(loaded);
+        // Rates whose BOQ was deleted or unpublished no longer come back:
+        // drop them so the basket count stays true.
+        if (loaded.length < ids.length) save(loaded.map((r) => r.rateId));
+      })
       .catch((e) => {
         if (e.name !== "AbortError") setError(e.message);
       });
     return () => controller.abort();
-  }, [ids, currency]);
+  }, [ids, currency, save]);
   async function exportBasket() {
     setExporting(true);
     setError("");
@@ -308,13 +371,16 @@ export function RateSearchWorkspace({
   admin,
   initialFilters,
   initialResult,
+  summary,
   options,
   initialError,
 }: {
   userId: string;
   admin: boolean;
   initialFilters: SearchFilters;
-  initialResult: SearchResult;
+  /** null until the user has searched or chosen a filter. */
+  initialResult: SearchResult | null;
+  summary: { rates: number; projects: number };
   options: SearchOptions;
   initialError?: string;
 }) {
@@ -337,6 +403,18 @@ export function RateSearchWorkspace({
         return;
       }
       pending.current?.abort();
+      // No text and no filters: show the start panel, don't list everything.
+      if (!hasSearchCriteria(parsed.data)) {
+        const empty = { ...parsed.data, page: 1 };
+        setFilters(empty);
+        setApplied(empty);
+        setResult(null);
+        setLoading(false);
+        setError("");
+        if (changeUrl)
+          window.history.pushState(null, "", `/?${searchParams({ ...empty, q: "" })}`);
+        return;
+      }
       const controller = new AbortController();
       pending.current = controller;
       setFilters(parsed.data);
@@ -419,7 +497,7 @@ export function RateSearchWorkspace({
   ).length;
   const simple = (data: { id: string; name: string }[]) =>
     data.map((o) => ({ value: o.id, label: o.name }));
-  const pages = Math.max(1, Math.ceil(result.total / result.pageSize));
+  const pages = result ? Math.max(1, Math.ceil(result.total / result.pageSize)) : 1;
   return (
     <>
       <PageHeader
@@ -647,6 +725,15 @@ export function RateSearchWorkspace({
           {error}
         </p>
       )}
+      {!result ? (
+        <StartPanel
+          summary={summary}
+          admin={admin}
+          loading={loading}
+          focus={() => searchInput.current?.focus()}
+          openFilters={() => setShowFilters(true)}
+        />
+      ) : (
       <div aria-busy={loading} className={loading ? "opacity-60" : ""}>
         <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[
@@ -891,6 +978,7 @@ export function RateSearchWorkspace({
           />
         )}
       </div>
+      )}
       <RateDetailSheet
         itemId={itemId}
         currency={applied.currency}

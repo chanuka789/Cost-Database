@@ -61,8 +61,13 @@ export function describeAction(e: Entry, targetName?: string): string {
       return `Extraction failed (${detail(e.details, "code") ?? "unknown"})`;
     case "document.retried":
       return "Started the extraction again";
-    case "document.deleted":
-      return `Deleted BOQ ${detail(e.details, "title") ?? ""}`.trim();
+    case "document.deleted": {
+      const title = detail(e.details, "title") ?? "";
+      if (detail(e.details, "wasPublished") === "true") {
+        return `Deleted published BOQ ${title} (${detail(e.details, "rates") ?? "?"} rates removed from search)`;
+      }
+      return `Deleted BOQ ${title}`.trim();
+    }
   }
   const [entity, verb] = e.action.split(".");
   const noun = { country: "country", city: "city", buildingType: "building type", stage: "stage" }[entity] ?? entity;

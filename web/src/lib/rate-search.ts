@@ -92,6 +92,18 @@ export function searchParams(filters: SearchFilters) {
   }
   return params;
 }
+/**
+ * True once the user has asked for something: typed text or chosen any
+ * filter. Currency and page alone don't count. Rate search lists nothing
+ * until then, rather than dumping every published rate.
+ */
+export function hasSearchCriteria(f: SearchFilters): boolean {
+  if (f.q.trim()) return true;
+  if (f.projects.length || f.stages.length) return true;
+  return [f.country, f.city, f.buildingType, f.rateType, f.unit, f.trade, f.bidder, f.boqFrom, f.boqTo, f.projectFrom, f.projectTo].some(
+    (v) => v !== undefined && v !== "",
+  );
+}
 export function searchTokens(query: string) {
   const normalized = query
     .toLowerCase()

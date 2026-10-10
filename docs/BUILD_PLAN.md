@@ -159,6 +159,7 @@ users ─< audit_log          extraction_jobs (status, progress, errors, ai_cost
 ### Rules enforced by the database
 - Money stored as `numeric`, never floating point.
 - Foreign keys with `ON DELETE CASCADE` from document → items → rates.
+- Any BOQ can be deleted by an admin, including a published one: its bills, items, rates, review and AI suggestions and its stored file are removed, its rates leave rate search immediately, and the project stays. The activity log records how many items and rates went.
 - Unique `(document_id, sort_order)` on items; unique `(document_id, position)` on bidders.
 - Indexes: GIN on `search_vector`, trigram GIN on `full_desc`, b-tree on all filter columns.
 
@@ -206,7 +207,7 @@ Upload ─► Store file ─► Detect type ─► Parse ─► Build hierarchy 
 | Item has unit and quantity | Warning |
 | `qty × rate ≈ amount` (±1%) | Error — must be fixed or confirmed |
 | Bill totals equal the collection page / summary totals | Error |
-| Item refs in sequence (A, B, C… no gaps or duplicates per page) | Warning |
+| A letter skipped within a run of item refs (A, B, D) on a PDF page. Refs restart on every page and at new sections, so repeated letters are normal and never flagged | Warning |
 | Main description with no items, or item with an unusually long main-description gap | Warning (possible wrong link) |
 | Unit recognised | Warning |
 | Rate within 10× of the median of similar items already in the database | Warning ("unusual rate") |

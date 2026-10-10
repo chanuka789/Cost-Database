@@ -259,3 +259,12 @@ export async function rateDetail(
     { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
   );
 }
+
+/** How much is searchable — shown before the first search instead of a list. */
+export async function publishedSummary(): Promise<{ rates: number; projects: number }> {
+  const [rates, projects] = await Promise.all([
+    prisma.rate.count({ where: { item: { document: { status: "PUBLISHED" } } } }),
+    prisma.project.count({ where: { documents: { some: { status: "PUBLISHED" } } } }),
+  ]);
+  return { rates, projects };
+}
