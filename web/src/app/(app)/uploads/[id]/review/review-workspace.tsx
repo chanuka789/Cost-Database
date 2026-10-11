@@ -282,6 +282,7 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
   const [bulkText, setBulkText] = useState("");
   const [target, setTarget] = useState("");
   const [publish, setPublish] = useState(false);
+  const [publishAsIs, setPublishAsIs] = useState(false);
   const groups = doc.bills.flatMap((b) => b.sections.flatMap((s) => s.groups));
   const items = groups.flatMap((g) => g.items);
   const itemIds = new Set(items.map(i => i.id));
@@ -291,6 +292,8 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
     ...unresolved(doc.issues, doc.acceptedIssues),
     ...items.flatMap((i) => unresolved(i.flags, i.acceptedFlags)),
   ].filter((f) => f.severity === "error").length;
+  const pendingAi = doc.aiSuggestions.filter((s) => s.status === "PENDING" && itemIds.has(s.itemId)).length;
+  const ready = items.length > 0 && checked === items.length && errors === 0 && !doc.aiSuggestions.some((s) => s.status === "PENDING");
   const maxPage = Math.max(doc.pageCount ?? 1, ...items.map((i) => i.page));
   const visible = (item: ReviewItem) =>
     item.page === page &&
@@ -364,15 +367,15 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
             · {doc.stage} · {doc.boqDate} · {doc.currency}
           </p>
         </div>
-        <Button
-          disabled={
-            busy || checked !== items.length || !items.length || errors > 0 || doc.aiSuggestions.some(s => s.status === "PENDING")
-          }
-          onClick={() => setPublish(true)}
-        >
-          <Upload />
-          Publish BOQ
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" disabled={busy || !items.length || ready} onClick={() => setPublishAsIs(true)}>
+            Publish without review
+          </Button>
+          <Button disabled={busy || !ready} onClick={() => setPublish(true)}>
+            <Upload />
+            Publish BOQ
+          </Button>
+        </div>
       </header>
       {archivedAi.length ? <details className="qs-card p-4 text-[12px]"><summary className="cursor-pointer font-semibold">AI history from earlier extractions ({archivedAi.length})</summary><div className="mt-3 space-y-3">{archivedAi.map(s => <div key={s.id} className="rounded-md border border-qs-border p-3"><p className="font-semibold">{s.kind} · {s.status} · {s.provider}</p><p className="mt-1 whitespace-pre-wrap break-words">Original: {s.original || "Unclassified"}</p><p className="mt-1 whitespace-pre-wrap break-words">Proposed: {s.proposed}</p><p className="mt-1 text-qs-text-muted">{s.reason}</p></div>)}</div></details> : null}
       {doc.aiStatus !== "OFF" ? <div className="qs-card space-y-2 p-4 text-[13px]" role="status"><p className="font-semibold">AI helper · {doc.aiStatus}</p><p>{doc.aiMessage ?? "Preparing suggestions. Extraction is saved; review becomes available when AI finishes."}</p><p className="text-qs-text-muted">Accept or reject each suggestion, then check the item against the source. Original text stays in the suggestion history.</p></div> : null}
@@ -803,6 +806,27 @@ export function ReviewWorkspace({ doc }: { doc: ReviewData }) {
         confirmLabel="Publish BOQ"
         onConfirm={async () =>
           (await mutate({ action: "publish" }))
+            ? null
+            : "Couldn't publish. Check the review messages and try again."
+        }
+      />
+      <ConfirmDialog
+        open={publishAsIs}
+        onOpenChange={setPublishAsIs}
+        title="Publish without review?"
+        tone="danger"
+        description={
+          <>
+            The BOQ is published as extracted, and its rates appear in search straight away.
+            {" "}{items.length - checked} unchecked items will be marked checked
+            {errors ? `, ${errors} open errors accepted` : ""}
+            {pendingAi ? `, and ${pendingAi} AI suggestions closed without being applied` : ""}.
+            {" "}Each is recorded as “Published without review” under your name in the activity log.
+          </>
+        }
+        confirmLabel="Publish without review"
+        onConfirm={async () =>
+          (await mutate({ action: "publish", skipReview: true }))
             ? null
             : "Couldn't publish. Check the review messages and try again."
         }

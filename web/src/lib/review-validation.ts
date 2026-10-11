@@ -10,10 +10,12 @@ const decimal = (precision: number, scale: number) =>
       "Enter a decimal within the supported precision.",
     )
     .nullable();
+// Bulk actions can cover a whole BOQ (13,000+ items in large workbooks).
+export const MAX_BULK_ITEMS = 20_000;
 const ids = z
-  .array(z.string().min(1))
+  .array(z.string().min(1).max(100))
   .min(1)
-  .max(500)
+  .max(MAX_BULK_ITEMS)
   .refine((x) => new Set(x).size === x.length, "Duplicate items.");
 const fields = z.object({
   itemRef: z.string().trim().min(1).max(100),
@@ -67,7 +69,8 @@ export const reviewActionSchema = z.discriminatedUnion("action", [
     key: z.string().min(1),
     reason: z.string().trim().min(5).max(2000),
   }),
-  z.object({ action: z.literal("publish") }),
+  /** skipReview: publish as-is — unchecked items are checked, open errors accepted, pending AI suggestions closed. */
+  z.object({ action: z.literal("publish"), skipReview: z.boolean().optional() }),
 ]);
 export const reviewRequestSchema = z.object({
   version: z.number().int().nonnegative(),

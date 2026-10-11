@@ -11,6 +11,7 @@ import {
   type ReviewAction,
 } from "./review-validation";
 import { validateItem } from "./review-checks";
+import type { Flag } from "./extraction-schema";
 import { AiError, applyAiSuggestion } from "./ai-service";
 
 export class ReviewError extends Error {
@@ -47,6 +48,7 @@ export async function applyReview(
         );
       if (doc.aiStatus === "RUNNING" || doc.aiStatus === "QUEUED")
         throw new ReviewError("AI suggestions are still being prepared. Wait for completion before reviewing.");
+      let skipped: Record<string, number> | null = null;
       const getItems = async (itemIds: string[]) => {
         const items = await tx.boqItem.findMany({
           where: { documentId: id, id: { in: itemIds } },
@@ -303,12 +305,13 @@ export async function applyReview(
             data: { acceptedIssues: accepted },
           });
       } else if (op.action === "publish") {
-        if (await tx.aiSuggestion.count({ where: { documentId: id, status: "PENDING" } }))
-          throw new ReviewError("Review all AI suggestions before publishing.");
         if (doc.rateType === "TENDER")
           throw new ReviewError(
             "Tender publishing requires bidder mapping in Phase 6.",
           );
+        if (op.skipReview) skipped = await publishAsIs(tx, id, doc.issues, doc.acceptedIssues, userId);
+        if (await tx.aiSuggestion.count({ where: { documentId: id, status: "PENDING" } }))
+          throw new ReviewError("Review all AI suggestions before publishing.");
         const items = await tx.boqItem.findMany({ where: { documentId: id } });
         if (!items.length || items.some((i) => !i.checkedAt))
           throw new ReviewError("Check every item before publishing.");
@@ -334,27 +337,17 @@ export async function applyReview(
           },
         });
       }
-      // Keep group page spans and summary counts in sync after any review operation.
+      // Keep group page spans and summary counts in sync after any review
+      // operation — in one statement, as large BOQs have thousands of groups.
+      await tx.$executeRaw`
+        UPDATE main_descriptions m SET "pageFrom" = s.lo, "pageTo" = s.hi
+        FROM (SELECT "mainDescriptionId" AS gid, min(page) AS lo, max(page) AS hi
+              FROM boq_items WHERE "documentId" = ${id} GROUP BY "mainDescriptionId") s
+        WHERE m.id = s.gid AND (m."pageFrom" <> s.lo OR m."pageTo" <> s.hi)`;
       const items = await tx.boqItem.findMany({
         where: { documentId: id },
-        select: {
-          mainDescriptionId: true,
-          page: true,
-          flags: true,
-          acceptedFlags: true,
-        },
+        select: { flags: true, acceptedFlags: true },
       });
-      const spans = new Map<string, number[]>();
-      for (const item of items) {
-        const pages = spans.get(item.mainDescriptionId) ?? [];
-        pages.push(item.page);
-        spans.set(item.mainDescriptionId, pages);
-      }
-      for (const [groupId, pages] of spans)
-        await tx.mainDescription.update({
-          where: { id: groupId },
-          data: { pageFrom: Math.min(...pages), pageTo: Math.max(...pages) },
-        });
       const updated = await tx.boqDocument.findUniqueOrThrow({ where: { id } });
       const allFlags = [
         ...unresolved(issuesOf(updated.issues), updated.acceptedIssues),
@@ -378,12 +371,60 @@ export async function applyReview(
               : `review.${op.action}`,
           entity: "document",
           entityId: id,
-          details: op as Prisma.InputJsonValue,
+          details: auditDetails(op, skipped),
         },
         tx,
       );
       return { ok: true, version: version + 1 };
     },
-    { timeout: 30000 },
+    { timeout: 120_000 },
   );
+}
+
+/** Large ID lists are summarised so the activity log stays readable. */
+function auditDetails(op: ReviewAction, skipped: Record<string, number> | null): Prisma.InputJsonValue {
+  const details: Record<string, unknown> = { ...op };
+  for (const key of ["itemIds", "groupIds"]) {
+    const list = details[key];
+    if (Array.isArray(list) && list.length > 50) {
+      delete details[key];
+      details[key.replace("Ids", "Count")] = list.length;
+    }
+  }
+  if (skipped) details.publishedWithoutReview = skipped;
+  return details as Prisma.InputJsonValue;
+}
+
+const SKIP_REASON = "Published without review";
+
+/**
+ * "Publish without review": everything a reviewer would otherwise do by hand
+ * is recorded as done by this user, with a reason that says it wasn't.
+ */
+async function publishAsIs(tx: Prisma.TransactionClient, id: string, issues: unknown, acceptedIssues: unknown, userId: string) {
+  const now = new Date();
+  const at = now.toISOString();
+  const accept = (flags: Flag[], accepted: unknown) => {
+    const open = unresolved(flags, accepted).filter((f) => f.severity === "error");
+    return open.length ? [...acceptancesOf(accepted), ...open.map((f) => ({ key: flagKey(f), reason: SKIP_REASON, userId, at }))] : null;
+  };
+  const suggestions = await tx.aiSuggestion.updateMany({
+    where: { documentId: id, status: "PENDING" },
+    data: { status: "SUPERSEDED", reviewedAt: now, reviewedById: userId },
+  });
+  const docAccepted = accept(issuesOf(issues), acceptedIssues);
+  if (docAccepted) await tx.boqDocument.update({ where: { id }, data: { acceptedIssues: docAccepted } });
+  let errors = docAccepted ? docAccepted.length - acceptancesOf(acceptedIssues).length : 0;
+  const items = await tx.boqItem.findMany({ where: { documentId: id }, select: { id: true, flags: true, acceptedFlags: true } });
+  for (const item of items) {
+    const accepted = accept(flagsOf(item.flags), item.acceptedFlags);
+    if (!accepted) continue;
+    errors += accepted.length - acceptancesOf(item.acceptedFlags).length;
+    await tx.boqItem.update({ where: { id: item.id }, data: { acceptedFlags: accepted } });
+  }
+  const checked = await tx.boqItem.updateMany({
+    where: { documentId: id, checkedAt: null },
+    data: { checkedAt: now, checkedById: userId },
+  });
+  return { itemsChecked: checked.count, errorsAccepted: errors, aiSuggestionsClosed: suggestions.count };
 }

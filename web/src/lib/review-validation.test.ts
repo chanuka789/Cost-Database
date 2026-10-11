@@ -3,6 +3,7 @@ import { validateItem } from "./review-checks";
 import {
   flagKey,
   fullDescription,
+  MAX_BULK_ITEMS,
   reviewRequestSchema,
   unresolved,
 } from "./review-validation";
@@ -83,16 +84,17 @@ describe("review checks", () => {
         operation: { action: "check", itemIds: ["a", "a"], checked: true },
       }).success,
     ).toBe(false);
-    expect(
+    const check = (length: number) =>
       reviewRequestSchema.safeParse({
         version: 0,
-        operation: {
-          action: "check",
-          itemIds: Array.from({ length: 501 }, (_, i) => String(i)),
-          checked: true,
-        },
-      }).success,
-    ).toBe(false);
+        operation: { action: "check", itemIds: Array.from({ length }, (_, i) => String(i)), checked: true },
+      }).success;
+    expect(check(13_388)).toBe(true); // a whole large workbook at once
+    expect(check(MAX_BULK_ITEMS + 1)).toBe(false);
+  });
+  it("accepts publishing with or without review", () => {
+    for (const operation of [{ action: "publish" }, { action: "publish", skipReview: true }])
+      expect(reviewRequestSchema.safeParse({ version: 0, operation }).success).toBe(true);
   });
   it("rejects values that exceed database numeric precision", () => {
     const operation = {
