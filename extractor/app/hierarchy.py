@@ -7,8 +7,11 @@ in reading order:
 - TextBlock   — lines of text that are not an item, separated from other
                 text by a gap (a heading, a main description, notes)
 - ItemRow     — one measured item: its reference, description and numbers
+- TotalRow    — a page / collection total; ignored here, used by the
+                running-total check in validate.py
 
-How a text block is read:
+How a text block is read (unless its kind is already known — the AI
+layout reader says which blocks are headings and which are main descriptions):
 - one short line (or one bold line)          -> heading
 - bold first line followed by regular lines  -> heading + main description
 - anything else (a paragraph)                -> main description
@@ -22,6 +25,7 @@ cover any number of items.
 
 from dataclasses import dataclass, field
 from decimal import Decimal
+from typing import Literal
 
 from .models import Bill, Flag, Item, MainDescription, Section
 from .numbers import decimal_str, parse_number, rate_note
@@ -42,6 +46,7 @@ class BillStart:
 class TextBlock:
     lines: list[tuple[str, bool]]  # (text, is_bold)
     page: int
+    kind: Literal["heading", "main"] | None = None  # None = decide from the text
 
 
 @dataclass
@@ -55,7 +60,13 @@ class ItemRow:
     amount_raw: str | None = None
 
 
-Event = BillStart | TextBlock | ItemRow
+@dataclass
+class TotalRow:
+    amount_raw: str | None
+    page: int
+
+
+Event = BillStart | TextBlock | ItemRow | TotalRow
 
 
 @dataclass
@@ -84,6 +95,10 @@ def _read_block(block: TextBlock) -> tuple[str | None, str | None]:
     lines = [(t.strip(), b) for t, b in block.lines if t.strip()]
     if not lines:
         return None, None
+    if block.kind == "heading":
+        return join_lines([t for t, _ in lines]), None
+    if block.kind == "main":
+        return None, join_lines([t for t, _ in lines])
     if len(lines) == 1:
         text, bold = lines[0]
         if bold or len(text) < HEADING_MAX_CHARS:
@@ -133,6 +148,9 @@ def build(events: list[Event]) -> list[Bill]:
                 st.main = _clean(main, scratch)
                 st.last_block_was_heading = False
                 st.main_desc = None  # same heading, next main description
+            continue
+
+        if isinstance(ev, TotalRow):
             continue
 
         # ItemRow

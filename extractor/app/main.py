@@ -8,7 +8,10 @@ Endpoints:
   GET  /health       — liveness, no token
   GET  /v1/info      — token check and supported formats
   POST /v1/inspect   — cover guesses (project, date, stage) for the upload form
-  POST /v1/extract   — full extraction: Bill › Heading › Main description › Item
+  POST /v1/rows      — the file as a masked row table, for AI layout reading
+                       (every standalone number replaced by "#")
+  POST /v1/extract   — full extraction: Bill › Heading › Main description › Item;
+                       with a `layout` plan, rebuilt from the AI's row labels
 """
 
 import hmac
@@ -24,6 +27,8 @@ from fastapi.responses import JSONResponse
 from .extract import VERSION, extract
 from .models import Cover
 from .ai import AiRequest, complete
+from .excel_reader import inspect_excel
+from .layout import LayoutPlan, build_table, describe
 from .pdf_reader import ExtractError, inspect_pdf
 
 log = logging.getLogger("extractor")
@@ -118,20 +123,43 @@ def inspect(file: UploadFile = File(...), column_mapping: str | None = Form(None
     try:
         if file_type == "pdf":
             cover, pages = inspect_pdf(str(path))
-        else:
+        elif mapping:
+            # A reviewed mapping must actually find items.
             result = extract(str(path), "xlsx", mapping)
             cover, pages = result.cover, result.stats.pages
+        else:
+            cover, pages = inspect_excel(str(path))
         return {"file_type": file_type, "pages": pages, "cover": Cover.model_validate(cover).model_dump()}
     finally:
         path.unlink(missing_ok=True)
 
 
-@app.post("/v1/extract")
-def run_extract(file: UploadFile = File(...), column_mapping: str | None = Form(None)):
+@app.post("/v1/rows")
+def rows(file: UploadFile = File(...), column_mapping: str | None = Form(None)):
     mapping = parse_mapping(column_mapping)
     path, file_type = _save_upload(file)
     try:
-        result = extract(str(path), file_type, mapping)
+        return JSONResponse(content=describe(build_table(str(path), file_type, mapping)))
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def parse_layout(value: str | None):
+    if not value:
+        return None
+    try:
+        return LayoutPlan.model_validate_json(value).model_dump()
+    except ValueError:
+        raise ExtractError("INVALID_LAYOUT", "The AI layout plan couldn't be read. Run the extraction again.")
+
+
+@app.post("/v1/extract")
+def run_extract(file: UploadFile = File(...), column_mapping: str | None = Form(None), layout: str | None = Form(None)):
+    mapping = parse_mapping(column_mapping)
+    plan = parse_layout(layout)
+    path, file_type = _save_upload(file)
+    try:
+        result = extract(str(path), file_type, mapping, plan)
         log.info("extracted %s: %s items, %s issues", file.filename, result.stats.items, len(result.issues))
         return JSONResponse(content=result.model_dump(mode="json"))
     except ExtractError:

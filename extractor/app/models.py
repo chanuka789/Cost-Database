@@ -79,6 +79,13 @@ class Stats(BaseModel):
     pages: int
 
 
+class Quality(BaseModel):
+    """recommend_ai = the rule-based reading looks wrong; try the AI layout reader."""
+
+    recommend_ai: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
 class ExtractResult(BaseModel):
     parser: str
     version: str
@@ -88,3 +95,4 @@ class ExtractResult(BaseModel):
     page_totals: list[PageTotal] = Field(default_factory=list)
     issues: list[Issue] = Field(default_factory=list)
     stats: Stats
+    quality: Quality = Field(default_factory=Quality)

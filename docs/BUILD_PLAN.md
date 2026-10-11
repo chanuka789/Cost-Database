@@ -237,6 +237,9 @@ Every supported BOQ layout gets a test file plus a checked expected output. The 
 | Suggest column mapping for unknown layouts and tender returns | When no known layout matches |
 | Suggest trade category (Paving, Lighting, Concrete…) | Every item |
 | Group similar items across projects | Background job after publish (phase 6) |
+| **Read the layout** of a BOQ the rules can't follow: say which column is which and label every row (bill, heading, main description, item, continuation, total, ignore) | Rule-based reading finds no items or looks wrong (`quality.recommend_ai`), and AI is on for the upload |
+
+**AI layout reading** (`extractor/app/layout.py`, `web/src/lib/ai-layout.ts`). The extractor turns the file into a row table (one row per Excel row or PDF line, cells by column) with every standalone number replaced by `#`; the web app re-checks that before sending. The AI returns column roles (only where headers don't say) and row labels in batches of ≤120 rows; answers must cover every row exactly. The extractor then rebuilds the BOQ from the labels, reading every quantity, rate and amount from the original file, and checks each page / collection total against the items above it. A hash of the masked table ties the labels to the exact reading the AI saw. If AI reading fails, the rule-based result is kept with a warning.
 | Read scanned (image) PDF pages | Later version — only with a provider whose model reads PDFs/images |
 
 ### Safety rules

@@ -140,7 +140,7 @@ async function providersFor(choice: string, allowFallback: boolean) {
   // A deleted/disabled explicit provider must never silently send data elsewhere.
   return first ? [first, ...(allowFallback ? all.filter(p => p.id !== primary).slice(0, 2) : [])] : [];
 }
-async function withFallback(choice: string, allowFallback: boolean, task: string, prompt: string, schema: z.ZodType, documentId?: string, deadline = Date.now() + 180000, recipients?: unknown) {
+export async function withFallback(choice: string, allowFallback: boolean, task: string, prompt: string, schema: z.ZodType, documentId?: string, deadline = Date.now() + 180000, recipients?: unknown) {
   let last = "NO_PROVIDER";
   const snapshot = z.array(z.object({ id: z.string(), fingerprint: z.string() })).safeParse(recipients);
   const available = await providersFor(choice, allowFallback);
