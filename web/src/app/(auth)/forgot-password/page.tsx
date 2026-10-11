@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
         <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" autoComplete="email" placeholder="name@qsgs.com" required autoFocus />
+            <Input id="email" name="email" type="email" autoComplete="email" placeholder="name@company.com" required autoFocus />
           </div>
           {error ? <FormMessage>{error}</FormMessage> : null}
           <Button type="submit" size="lg" className="w-full" disabled={pending}>

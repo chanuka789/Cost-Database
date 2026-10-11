@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,15 +12,6 @@ import { HEADER_ICON_BUTTON } from "./styles";
 
 type ShellUser = { name: string; email: string; role: "ADMIN" | "USER" };
 const COLLAPSE_KEY = "qs-sidebar-collapsed";
-
-function Logo({ className }: { className?: string }) {
-  return (
-    <>
-      <img src="/brand/logo.png" alt="QSGS" className={cn("brand-light-only h-[30px] w-auto", className)} />
-      <img src="/brand/logo-white.png" alt="QSGS" className={cn("brand-dark-only h-[30px] w-auto", className)} />
-    </>
-  );
-}
 
 function NavList({ role, collapsed, onNavigate }: { role: ShellUser["role"]; collapsed: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -109,9 +99,7 @@ export function AppShell({ user, theme, children }: { user: ShellUser; theme: "l
           <MenuIcon className="size-[18px]" aria-hidden />
         </button>
         <Link href="/" className="flex h-[30px] shrink-0 items-center gap-3" aria-label="Cost Database home">
-          <Logo />
-          <span className="hidden h-5 w-px bg-qs-border sm:block" aria-hidden />
-          <span className="hidden text-[13.5px] font-[600] text-qs-text-secondary sm:block">Cost Database</span>
+          <span className="text-[13.5px] font-[600] text-qs-text-secondary">Cost Database</span>
         </Link>
         <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle initial={theme} />
@@ -150,7 +138,7 @@ export function AppShell({ user, theme, children }: { user: ShellUser; theme: "l
           <div className="absolute inset-0 bg-[var(--qs-backdrop)]" onClick={() => setMobileOpen(false)} />
           <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-qs-panel shadow-qs-popup animate-in slide-in-from-left-4 fade-in-0 duration-150">
             <div className="flex h-14 items-center justify-between border-b border-qs-border px-4">
-              <Logo />
+              <span className="text-[13.5px] font-[600] text-qs-text-secondary">Cost Database</span>
               <button type="button" className={HEADER_ICON_BUTTON} aria-label="Close menu" onClick={() => setMobileOpen(false)}>
                 <X className="size-[18px]" aria-hidden />
               </button>

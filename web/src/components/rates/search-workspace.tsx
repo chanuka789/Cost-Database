@@ -282,7 +282,7 @@ function BasketContent({
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = `QSGS-rates-${currency}.xlsx`;
+      link.download = `Cost-Database-rates-${currency}.xlsx`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch (e) {

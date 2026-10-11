@@ -77,7 +77,7 @@ export async function requestPasswordReset(input: { email: string }) {
         const token = await issueAuthToken(user.id, "RESET", null);
         const sent = await sendEmail(
           user.email,
-          "Reset your QSGS Cost Database password",
+          "Reset your Cost Database password",
           `Hello ${user.name},\n\nUse this link to set a new password. It works once and expires in 48 hours:\n\n${appUrl(linkPath("RESET", token))}\n\nIf you didn't ask for this, you can ignore this email.`,
         );
         await audit({ userId: user.id, action: "auth.reset_requested", entity: "user", entityId: user.id, details: { emailed: sent } });

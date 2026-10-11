@@ -416,11 +416,6 @@
   50% { opacity: 0.55; }
 }
 
-/* Logo: show the variant that suits the theme. */
-.brand-dark-only { display: none; }
-.dark .brand-light-only { display: none; }
-.dark .brand-dark-only { display: block; }
-
 /* Toasts (sonner): dark grey in both themes. */
 .toaster .qs-toast {
   border: 1px solid var(--qs-toast-border) !important;

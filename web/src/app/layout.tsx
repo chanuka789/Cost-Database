@@ -6,8 +6,8 @@ import { funnelSans } from "./font-config";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Cost Database | QSGS", template: "%s | QSGS Cost Database" },
-  description: "Quantity Surveying Global Solutions — BOQ rate database",
+  title: { default: "Cost Database", template: "%s | Cost Database" },
+  description: "BOQ rate database",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

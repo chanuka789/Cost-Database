@@ -17,7 +17,7 @@ export async function exportRateWorkbook(
   currency: DisplayCurrency,
 ) {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "QSGS Cost Database";
+  workbook.creator = "Cost Database";
   const sheet = workbook.addWorksheet("Rates", {
     views: [{ state: "frozen", ySplit: 1 }],
   });
@@ -104,7 +104,7 @@ export async function exportRateWorkbook(
     {
       setting: "Source",
       value:
-        "Published BOQs in QSGS Cost Database; identify each item with document and item IDs.",
+        "Published BOQs in Cost Database; identify each item with document and item IDs.",
     },
     {
       setting: "Numeric precision",

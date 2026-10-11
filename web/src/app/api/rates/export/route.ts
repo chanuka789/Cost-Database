@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="QSGS-rates-${parsed.data.currency}-${new Date().toISOString().slice(0, 10)}.xlsx"`,
+      "Content-Disposition": `attachment; filename="Cost-Database-rates-${parsed.data.currency}-${new Date().toISOString().slice(0, 10)}.xlsx"`,
       "Cache-Control": "private, no-store",
     },
   });

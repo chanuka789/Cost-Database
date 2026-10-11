@@ -40,7 +40,7 @@ export function LoginForm({ next, notice }: { next: string; notice?: string }) {
       {notice ? <FormMessage tone="success">{notice}</FormMessage> : null}
       <div className="flex flex-col gap-2">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" placeholder="name@qsgs.com" required autoFocus />
+        <Input id="email" name="email" type="email" autoComplete="email" placeholder="name@company.com" required autoFocus />
       </div>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">

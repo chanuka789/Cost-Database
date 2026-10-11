@@ -20,8 +20,8 @@ async function sendInvite(user: { id: string; name: string; email: string }, adm
   const link = appUrl(linkPath("INVITE", token));
   const emailed = await sendEmail(
     user.email,
-    "You're invited to the QSGS Cost Database",
-    `Hello ${user.name},\n\n${adminName} has invited you to the QSGS Cost Database.\n\nSet your password with this link. It works once and expires in 48 hours:\n\n${link}`,
+    "You're invited to the Cost Database",
+    `Hello ${user.name},\n\n${adminName} has invited you to the Cost Database.\n\nSet your password with this link. It works once and expires in 48 hours:\n\n${link}`,
   );
   return { link, emailed };
 }
@@ -81,7 +81,7 @@ export async function createResetLink(userId: string) {
     const link = appUrl(linkPath("RESET", token));
     const emailed = await sendEmail(
       user.email,
-      "Reset your QSGS Cost Database password",
+      "Reset your Cost Database password",
       `Hello ${user.name},\n\nAn admin created a password reset link for you. It works once and expires in 48 hours:\n\n${link}`,
     );
     await audit({ userId: admin.id, action: "user.reset_link_created", entity: "user", entityId: user.id, details: { emailed } });

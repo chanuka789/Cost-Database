@@ -73,7 +73,7 @@ export function InviteUserButton({ emailEnabled }: { emailEnabled: boolean }) {
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="invite-email">Email</Label>
-                <Input id="invite-email" name="email" type="email" required placeholder="name@qsgs.com" />
+                <Input id="invite-email" name="email" type="email" required placeholder="name@company.com" />
               </div>
               <div className="flex flex-col gap-2">
                 <span className="text-[12.5px] font-semibold text-qs-text-secondary" id="invite-role-label">
