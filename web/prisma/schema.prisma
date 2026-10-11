@@ -173,6 +173,8 @@ model AppSetting {
 enum RateType {
   PTE
   TENDER
+  /// A QS cost estimate (e.g. a detailed design estimate), kept apart from PTEs.
+  ESTIMATE
 }
 
 enum DocumentStatus {

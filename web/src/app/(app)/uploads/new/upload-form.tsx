@@ -107,7 +107,7 @@ export function UploadForm({ data, initialProjectId }: { data: UploadFormData; i
     client: "",
     consultant: "",
   });
-  const [doc, setDoc] = useState({ title: "", rateType: "PTE" as const, stageId: "", boqDate: "", currency: "" as Currency | "", aiChoice: data.ai.enabled && data.ai.defaultChoice !== "OFF" ? "DEFAULT" : "OFF", aiAllowFallback: false });
+  const [doc, setDoc] = useState({ title: "", rateType: "PTE" as "PTE" | "ESTIMATE", stageId: "", boqDate: "", currency: "" as Currency | "", aiChoice: data.ai.enabled && data.ai.defaultChoice !== "OFF" ? "DEFAULT" : "OFF", aiAllowFallback: false });
   const [currencyTouched, setCurrencyTouched] = useState(false);
 
   const [attempted, setAttempted] = useState(false);
@@ -529,11 +529,13 @@ export function UploadForm({ data, initialProjectId }: { data: UploadFormData; i
           <Field label="Title" htmlFor="d-title" error={err("title")} hint="How this BOQ is listed, e.g. “Q-Walk SD 50% BOQ”." className="sm:col-span-2">
             <Input id="d-title" value={doc.title} aria-invalid={Boolean(err("title"))} onChange={(e) => setDoc({ ...doc, title: e.target.value })} />
           </Field>
-          <Field label="Rate type" hint="Tender returns, with each contractor's rates, come in a later phase.">
+          <Field label="Rate type" hint="Cost estimates are kept and searched separately from PTEs. Tender returns come in a later phase.">
             <div className="qs-segmented w-fit" role="radiogroup" aria-label="Rate type">
-              <button type="button" role="radio" aria-checked className="qs-segmented-item">
-                PTE
-              </button>
+              {(["PTE", "ESTIMATE"] as const).map((type) => (
+                <button key={type} type="button" role="radio" aria-checked={doc.rateType === type} className="qs-segmented-item" onClick={() => setDoc({ ...doc, rateType: type })}>
+                  {type === "PTE" ? "PTE" : "Cost estimate"}
+                </button>
+              ))}
               <button type="button" role="radio" aria-checked={false} className="qs-segmented-item" disabled title="Coming in a later phase">
                 Tender return
               </button>

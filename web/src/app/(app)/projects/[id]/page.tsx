@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { formatDate, plural } from "@/lib/format";
+import { formatDate, plural, rateTypeLabel } from "@/lib/format";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "../../uploads/status-badge";
@@ -106,7 +106,7 @@ export default async function ProjectPage({
               </div>
               <p className="mt-1 text-[13px] text-qs-text-muted">
                 {doc.stage.name} ·{" "}
-                {doc.rateType === "PTE" ? "PTE" : "Tender return"} ·{" "}
+                {rateTypeLabel(doc.rateType)} ·{" "}
                 {formatDate(doc.boqDate)} · {doc.currency} ·{" "}
                 {plural(doc.itemCount, "item")}
               </p>

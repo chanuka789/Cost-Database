@@ -34,7 +34,7 @@ export const searchSchema = z
     country: id.optional(),
     city: id.optional(),
     buildingType: id.optional(),
-    rateType: z.enum(["PTE", "TENDER"]).optional(),
+    rateType: z.enum(["PTE", "TENDER", "ESTIMATE"]).optional(),
     unit: z.string().max(60).optional(),
     trade: z.string().max(500).optional(),
     bidder: id.optional(),

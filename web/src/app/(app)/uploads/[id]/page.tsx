@@ -5,7 +5,7 @@ import { AlertTriangle, ChevronLeft, CircleAlert, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/session";
-import { formatDate, formatDateTime, plural } from "@/lib/format";
+import { formatDate, formatDateTime, plural, rateTypeLabel } from "@/lib/format";
 import { failStaleJobs } from "@/lib/extraction-runner";
 import { flagSchema, issueSchema, type Flag } from "@/lib/extraction-schema";
 import { z } from "zod";
@@ -91,7 +91,7 @@ export default async function UploadPage({ params }: { params: Promise<{ id: str
           </div>
           <p className="mt-1.5 text-[13.5px] text-qs-text-muted">
             <span className="font-[550] text-qs-text-secondary">{doc.project.name}</span>
-            {doc.project.projectNo ? ` (${doc.project.projectNo})` : ""} · {doc.stage.name} · {doc.rateType === "PTE" ? "PTE" : "Tender return"} · BOQ date{" "}
+            {doc.project.projectNo ? ` (${doc.project.projectNo})` : ""} · {doc.stage.name} · {rateTypeLabel(doc.rateType)} · BOQ date{" "}
             {formatDate(doc.boqDate)} · {doc.currency}
           </p>
           <p className="mt-0.5 text-[12.5px] text-qs-text-faint">

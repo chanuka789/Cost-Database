@@ -34,3 +34,8 @@ export function formatDateTime(d: Date | string | null | undefined): string {
 export function plural(n: number, word: string): string {
   return `${n.toLocaleString("en-US")} ${word}${n === 1 ? "" : "s"}`;
 }
+
+/** How a rate type reads in the app. */
+export function rateTypeLabel(rateType: string): string {
+  return rateType === "TENDER" ? "Tender return" : rateType === "ESTIMATE" ? "Cost estimate" : "PTE";
+}

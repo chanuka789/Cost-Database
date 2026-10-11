@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import Link from "next/link";
+import { rateTypeLabel } from "@/lib/format";
 import {
   Search,
   SlidersHorizontal,
@@ -641,6 +642,7 @@ export function RateSearchWorkspace({
                 value={filters.rateType ?? ""}
                 options={[
                   { value: "PTE", label: "PTE" },
+                  { value: "ESTIMATE", label: "Cost estimate" },
                   { value: "TENDER", label: "Tender" },
                 ]}
                 onChange={(value) => patch("rateType", value || undefined)}
@@ -895,7 +897,7 @@ export function RateSearchWorkspace({
                         </p>
                       </td>
                       <td>
-                        <p>{row.rateType}</p>
+                        <p>{rateTypeLabel(row.rateType)}</p>
                         {row.rateType === "TENDER" && (
                           <p className="text-[11px] text-qs-text-muted">
                             {row.bidderCount} bidders

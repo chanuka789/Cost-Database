@@ -49,9 +49,11 @@ describe("upload form", () => {
     expect(messages).toContain("Choose the city.");
     expect(messages).toContain("Choose the project stage.");
   });
-  it("only allows PTE until tender returns are built", () => {
+  it("allows PTEs and cost estimates, not tender returns yet", () => {
     const r = uploadSchema.safeParse({ projectMode: "existing", projectId: "p1", document: { ...document, rateType: "TENDER" } });
     expect(r.success).toBe(false);
+    const estimate = uploadSchema.safeParse({ projectMode: "existing", projectId: "p1", document: { ...document, rateType: "ESTIMATE" } });
+    expect(estimate.success).toBe(true);
   });
   it("accepts a month-only project date", () => {
     const r = uploadSchema.safeParse({ projectMode: "new", project: { ...project, projectDatePrecision: "MONTH", projectDate: "2026-09" }, document });

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { rateTypeLabel } from "@/lib/format";
 import {
   Sheet,
   SheetContent,
@@ -201,7 +202,7 @@ export function DetailContent({
         </p>
         <p className="text-[12px] text-qs-text-muted">
           {item.buildingType} · {item.stage} · BOQ {item.boqDate} ·{" "}
-          {item.rateType}
+          {rateTypeLabel(item.rateType)}
         </p>
         <h3 className="text-[14px] font-semibold">
           {item.itemRef} · {item.description}
@@ -241,7 +242,7 @@ export function DetailContent({
             >
               <div>
                 <p className="text-[12px] text-qs-text-muted">
-                  {row.rateType}
+                  {rateTypeLabel(row.rateType)}
                   {row.bidderId ? ` · Bidder ${row.bidderId}` : ""}
                 </p>
                 <p className="text-[18px] font-semibold tabular-nums">

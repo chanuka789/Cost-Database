@@ -54,7 +54,7 @@ export const documentSchema = z.object({
   aiAllowFallback: z.boolean().default(false),
   columnMapping: columnMappingSchema.nullable().default(null),
   title: z.string().trim().min(2, "Enter a title for this BOQ.").max(160, "Use 160 characters or fewer."),
-  rateType: z.literal("PTE", { error: "Only PTE BOQs can be uploaded for now. Tender returns come in a later phase." }),
+  rateType: z.enum(["PTE", "ESTIMATE"], { error: "Choose PTE or cost estimate. Tender returns come in a later phase." }),
   stageId: z.string().min(1, "Choose the project stage."),
   boqDate: isoDate,
   currency: z.enum(["SAR", "AED", "QAR"], { error: "Choose the currency." }),

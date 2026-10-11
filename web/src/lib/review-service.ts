@@ -305,7 +305,7 @@ export async function applyReview(
       } else if (op.action === "publish") {
         if (await tx.aiSuggestion.count({ where: { documentId: id, status: "PENDING" } }))
           throw new ReviewError("Review all AI suggestions before publishing.");
-        if (doc.rateType !== "PTE")
+        if (doc.rateType === "TENDER")
           throw new ReviewError(
             "Tender publishing requires bidder mapping in Phase 6.",
           );

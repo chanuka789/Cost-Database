@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState, PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/session";
-import { formatDate, plural } from "@/lib/format";
+import { formatDate, plural, rateTypeLabel } from "@/lib/format";
 import { failStaleJobs } from "@/lib/extraction-runner";
 import { StatusBadge } from "./status-badge";
 
@@ -75,7 +75,7 @@ export default async function UploadsPage() {
                     <Link href={`/uploads/${d.id}`} className="block truncate font-[550] text-qs-text hover:text-qs-brand-text hover:underline">
                       {d.title}
                     </Link>
-                    <span className="text-[11.5px] text-qs-text-faint">{d.rateType === "PTE" ? "PTE" : "Tender return"}</span>
+                    <span className="text-[11.5px] text-qs-text-faint">{rateTypeLabel(d.rateType)}</span>
                   </td>
                   <td>
                     <span className="block truncate">{d.project.name}</span>
